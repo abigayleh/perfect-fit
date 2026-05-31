@@ -1,65 +1,100 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import Link from "next/link";
+import type { CSSProperties } from "react";
+import { useState } from "react";
+import { getLastUncompletedLevel } from "../lib/progress";
+
+function getWoodBlockStyle(): CSSProperties {
+  return {
+    backgroundColor: "#A86631",
+    backgroundImage:
+      "linear-gradient(160deg, rgba(255,255,255,0.26), rgba(255,255,255,0.04) 48%, rgba(0,0,0,0.1)), repeating-linear-gradient(10deg, rgba(255,255,255,0.1) 0, rgba(255,255,255,0.1) 2px, rgba(0,0,0,0.05) 2px, rgba(0,0,0,0.05) 4px)",
+    border: "1px solid rgba(74, 39, 17, 0.55)",
+    boxShadow:
+      "inset 0 1px 0 rgba(255, 244, 219, 0.4), inset 0 -2px 3px rgba(51, 27, 12, 0.28), 0 8px 20px rgba(51, 27, 12, 0.2)",
+  };
+}
+
+function getDecorativeTileStyle(tone: string): CSSProperties {
+  return {
+    backgroundColor: tone,
+    backgroundImage:
+      "linear-gradient(155deg, rgba(255,246,224,0.3), rgba(255,246,224,0.08) 42%, rgba(68,38,19,0.1) 72%, rgba(40,22,10,0.22)), repeating-linear-gradient(12deg, rgba(255,255,255,0.08) 0, rgba(255,255,255,0.08) 1px, rgba(67,37,19,0.06) 1px, rgba(67,37,19,0.06) 3px)",
+    border: "1px solid rgba(74, 39, 17, 0.5)",
+    boxShadow:
+      "inset 0 1px 0 rgba(255, 248, 229, 0.35), inset 0 -2px 4px rgba(45, 24, 10, 0.22), 0 4px 10px rgba(45,24,10,0.18)",
+    borderRadius: "0.5rem",
+  };
+}
+
+function getDecorativePieceStyle(tone: string, clipPath: string): CSSProperties {
+  return {
+    ...getDecorativeTileStyle(tone),
+    clipPath,
+    borderRadius: 0,
+  };
+}
+
+function getWoodTitleStyle(): CSSProperties {
+  return {
+    backgroundColor: "#8F5A2D",
+    backgroundImage:
+      "linear-gradient(165deg, rgba(255,255,255,0.24), rgba(255,255,255,0.06) 42%, rgba(0,0,0,0.14)), repeating-linear-gradient(8deg, rgba(255,255,255,0.1) 0, rgba(255,255,255,0.1) 2px, rgba(0,0,0,0.05) 2px, rgba(0,0,0,0.05) 4px)",
+    border: "1px solid rgba(74, 39, 17, 0.6)",
+    boxShadow:
+      "inset 0 1px 0 rgba(255, 244, 219, 0.45), inset 0 -3px 4px rgba(51, 27, 12, 0.3), 0 10px 24px rgba(51, 27, 12, 0.22)",
+  };
+}
+
+export default function HomePage() {
+  const [playLevel] = useState(() => getLastUncompletedLevel());
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-[100dvh] bg-[radial-gradient(circle_at_top,_#fff7ed,_#ffedd5_45%,_#fed7aa)] px-4 py-6 text-zinc-900 sm:px-6 sm:py-8">
+      <section className="mx-auto flex min-h-[calc(100dvh-3rem)] w-full max-w-xl flex-col items-center justify-between sm:min-h-[calc(100dvh-4rem)]">
+        <h1
+          className="w-full rounded-2xl px-4 py-3 text-center text-4xl font-black uppercase tracking-[0.14em] text-amber-50 sm:mt-1 sm:text-5xl"
+          style={getWoodTitleStyle()}
+        >
+          Perfect Fit
+        </h1>
+
+        <div className="relative h-60 w-full max-w-[24rem]" aria-hidden="true">
+          <div
+            className="absolute left-0 top-0 h-60 w-[10rem]"
+            style={getDecorativePieceStyle(
+              "#A86631",
+              "polygon(0% 0%, 50% 0%, 50% 33.333%, 100% 33.333%, 100% 66.666%, 50% 66.666%, 50% 100%, 0% 100%)",
+            )}
+          />
+
+          <div
+            className="absolute right-0 top-0 h-60 w-[10rem]"
+            style={getDecorativePieceStyle(
+              "#B77940",
+              "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 66.666%, 50% 66.666%, 50% 33.333%, 0% 33.333%)",
+            )}
+          />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        <div className="grid w-full gap-3 pb-1">
+          <Link
+            href={`/play?level=${playLevel}`}
+            className="rounded-xl px-4 py-3 text-center text-base font-black uppercase tracking-[0.12em] text-amber-50 transition hover:brightness-105"
+            style={getWoodBlockStyle()}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Play
+          </Link>
+          <Link
+            href="/levels"
+            className="rounded-xl px-4 py-3 text-center text-base font-black uppercase tracking-[0.12em] text-amber-50 transition hover:brightness-105"
+            style={getWoodBlockStyle()}
           >
-            Documentation
-          </a>
+            Level Selection
+          </Link>
         </div>
-      </main>
-    </div>
+      </section>
+    </main>
   );
 }

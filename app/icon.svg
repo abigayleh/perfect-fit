@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Perfect Fit wooden block icon">
+  <defs>
+    <linearGradient id="woodBase" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#c78a4f"/>
+      <stop offset="1" stop-color="#8a552b"/>
+    </linearGradient>
+    <pattern id="grain" width="8" height="8" patternUnits="userSpaceOnUse">
+      <path d="M0 2H8M0 6H8" stroke="#6f4121" stroke-opacity="0.2" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect x="6" y="6" width="52" height="52" rx="10" fill="url(#woodBase)" stroke="#5a3118" stroke-width="2"/>
+  <rect x="6" y="6" width="52" height="52" rx="10" fill="url(#grain)"/>
+  <path d="M20 20h10v10h-10zM34 20h10v10h-10zM20 34h10v10h-10zM34 34h10v10h-10z" fill="#f5d8a9" fill-opacity="0.2"/>
+  <path d="M16 16l32 32" stroke="#f8e6c6" stroke-opacity="0.18" stroke-width="2"/>
+</svg>
