@@ -74,7 +74,7 @@ const PRESET_LEVELS: Record<number, LevelPiecePreset[]> = {
     { cells: [[0, 0], [0, 1], [0, 2], [1, 2]], rotatable: true, initialRotation: 1 },
     { cells: [[0, 0], [1, 0], [2, 0], [2, 1]], rotatable: true, initialRotation: 3 },
     { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
-    { cells: [[0, 0], [0, 1], [1, 1], [1, 2]] },
+    { cells: [[0, 0], [1, 0], [2, 0], [3, 0]] },
   ],
   7: [
     { cells: [[0, 0], [0, 1], [0, 2], [1, 1]], rotatable: true, initialRotation: 2 },
@@ -94,13 +94,13 @@ const PRESET_LEVELS: Record<number, LevelPiecePreset[]> = {
     { cells: [[0, 0], [0, 1], [0, 2], [1, 0]], rotatable: true, initialRotation: 1 },
     { cells: [[0, 0], [1, 0], [2, 0], [2, 1]], rotatable: true, initialRotation: 2 },
     { cells: [[0, 0], [0, 1], [1, 1], [1, 2]], rotatable: true, initialRotation: 1 },
-    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [0, 1], [1, 1], [1, 2]] },
   ],
   10: [
     { cells: [[0, 0], [0, 1], [0, 2], [1, 1]], rotatable: true, initialRotation: 1 },
     { cells: [[0, 0], [1, 0], [1, 1], [2, 1]], rotatable: true, initialRotation: 2 },
     { cells: [[0, 1], [1, 0], [1, 1], [1, 2]], rotatable: true, initialRotation: 3 },
-    { cells: [[0, 0], [1, 0], [2, 0], [2, 1]], rotatable: true, initialRotation: 1 },
+    { cells: [[0, 0], [0, 1], [0, 2], [1, 2]], rotatable: true, initialRotation: 1 },
   ],
 };
 

@@ -225,23 +225,33 @@ export default function PlayScreen() {
     return () => clearTimeout(t);
   }, [isComplete]);
 
-  function makeBoardPickupGesture(pieceId: string) {
-    return Gesture.Pan()
-      .minDistance(4)
-      .onStart(e => {
-        dragX.value = e.absoluteX;
-        dragY.value = e.absoluteY;
-        runOnJS(pickupFromBoard)(pieceId);
-      })
-      .onUpdate(e => {
-        dragX.value = e.absoluteX;
-        dragY.value = e.absoluteY;
-        runOnJS(computeDropPos)(e.absoluteX, e.absoluteY);
-      })
-      .onEnd(e => {
-        runOnJS(endDrag)(e.absoluteX, e.absoluteY);
-      });
+  // Single board-level gesture so the host never unmounts mid-drag
+  function handleBoardDragStart(absX: number, absY: number) {
+    const layout = boardLayoutRef.current;
+    if (!layout) return;
+    const col = Math.floor((absX - layout.x) / cellSize);
+    const row = Math.floor((absY - layout.y) / cellSize);
+    if (row < 0 || col < 0 || row >= BOARD_SIZE || col >= BOARD_SIZE) return;
+    const cell = boardStateRef.current[row]?.[col];
+    if (!cell) return;
+    pickupFromBoard(cell.pieceId);
   }
+
+  const boardGesture = Gesture.Pan()
+    .minDistance(4)
+    .onStart(e => {
+      dragX.value = e.absoluteX;
+      dragY.value = e.absoluteY;
+      runOnJS(handleBoardDragStart)(e.absoluteX, e.absoluteY);
+    })
+    .onUpdate(e => {
+      dragX.value = e.absoluteX;
+      dragY.value = e.absoluteY;
+      runOnJS(computeDropPos)(e.absoluteX, e.absoluteY);
+    })
+    .onEnd(e => {
+      runOnJS(endDrag)(e.absoluteX, e.absoluteY);
+    });
 
   function makeTrayDragGesture(piece: Piece) {
     return Gesture.Pan()
@@ -288,6 +298,7 @@ export default function PlayScreen() {
           {/* Board */}
           <View style={styles.boardArea}>
             <Animated.View style={boardAnimStyle}>
+            <GestureDetector gesture={boardGesture}>
             <View
               ref={boardViewRef}
               style={[styles.board, { width: cellSize * BOARD_SIZE }]}
@@ -302,21 +313,6 @@ export default function PlayScreen() {
                       ? 'rgba(34,197,94,0.4)'
                       : 'rgba(239,68,68,0.4)';
 
-                    if (cell) {
-                      return (
-                        <GestureDetector key={cIdx} gesture={makeBoardPickupGesture(cell.pieceId)}>
-                          <View style={[styles.boardCell, { width: cellSize, height: cellSize }]}>
-                            <LinearGradient
-                              colors={woodColors(cell.color)}
-                              start={{ x: 0.15, y: 0 }}
-                              end={{ x: 0.85, y: 1 }}
-                              style={styles.filledCell}
-                            />
-                          </View>
-                        </GestureDetector>
-                      );
-                    }
-
                     return (
                       <View
                         key={cIdx}
@@ -325,12 +321,22 @@ export default function PlayScreen() {
                           { width: cellSize, height: cellSize },
                           isHighlighted ? { backgroundColor: highlightColor } : null,
                         ]}
-                      />
+                      >
+                        {cell && (
+                          <LinearGradient
+                            colors={woodColors(cell.color)}
+                            start={{ x: 0.15, y: 0 }}
+                            end={{ x: 0.85, y: 1 }}
+                            style={styles.filledCell}
+                          />
+                        )}
+                      </View>
                     );
                   })}
                 </View>
               ))}
             </View>
+            </GestureDetector>
             </Animated.View>
           </View>
 

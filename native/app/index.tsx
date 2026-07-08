@@ -14,7 +14,20 @@ import { getLastUncompletedLevel } from '../lib/progress';
 
 const WOOD_DARK = '#8F5A2D';
 const WOOD_MID = '#A86631';
-const WOOD_LIGHT = '#B77940';
+
+// 0 = empty board cell, 1/2/3 = filled piece
+const DEMO_BOARD = [
+  [1, 1, 2, 2],
+  [1, 1, 2, 2],
+  [3, 3, 0, 0],
+  [3, 3, 0, 0],
+] as const;
+
+const DEMO_COLORS: Record<number, readonly [string, string, string]> = {
+  1: ['#C09050', '#8F5A2D', '#6B3F18'],
+  2: ['#D4A96A', '#B77940', '#8A501E'],
+  3: ['#B88040', '#9C5E28', '#754018'],
+};
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -35,25 +48,23 @@ export default function HomeScreen() {
             <Text style={styles.title}>PERFECT FIT</Text>
           </View>
 
-          {/* L + J tetrominoes: assembled they form a perfect 2×4 rectangle */}
-          <View style={styles.decorContainer}>
-            {([[0,0],[0,1],[1,0],[2,0]] as [number,number][]).map(([r, c]) => (
-              <LinearGradient
-                key={`a-${r}-${c}`}
-                colors={['#C09050', '#8F5A2D', '#6B3F18']}
-                start={{ x: 0.15, y: 0 }}
-                end={{ x: 0.85, y: 1 }}
-                style={[styles.decorCell, { left: c * 42 + 10, top: r * 42 + 12 }]}
-              />
-            ))}
-            {([[1,1],[2,1],[3,0],[3,1]] as [number,number][]).map(([r, c]) => (
-              <LinearGradient
-                key={`b-${r}-${c}`}
-                colors={['#D4A96A', '#B77940', '#8A501E']}
-                start={{ x: 0.15, y: 0 }}
-                end={{ x: 0.85, y: 1 }}
-                style={[styles.decorCell, { left: c * 42 + 30, top: r * 42 + 28 }]}
-              />
+          {/* Mini board: 3 pieces placed, one 2×2 gap showing where the last piece fits */}
+          <View style={styles.miniBoard}>
+            {DEMO_BOARD.map((row, r) => (
+              <View key={r} style={styles.miniBoardRow}>
+                {row.map((piece, c) => (
+                  <View key={c} style={styles.miniCell}>
+                    {piece > 0 && (
+                      <LinearGradient
+                        colors={DEMO_COLORS[piece]}
+                        start={{ x: 0.15, y: 0 }}
+                        end={{ x: 0.85, y: 1 }}
+                        style={StyleSheet.absoluteFill}
+                      />
+                    )}
+                  </View>
+                ))}
+              </View>
             ))}
           </View>
 
@@ -119,22 +130,25 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: 4,
   },
-  decorContainer: {
-    position: 'relative',
-    width: 120,
-    height: 200,
+  miniBoard: {
     alignSelf: 'center',
-  },
-  decorCell: {
-    position: 'absolute',
-    width: 38,
-    height: 38,
-    borderRadius: 6,
     shadowColor: '#331b0c',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  miniBoardRow: {
+    flexDirection: 'row',
+  },
+  miniCell: {
+    width: 44,
+    height: 44,
+    borderWidth: 1,
+    borderColor: 'rgba(253,186,116,0.6)',
+    backgroundColor: 'rgba(255,255,255,0.65)',
+    borderRadius: 5,
+    overflow: 'hidden',
   },
   buttons: {
     width: '100%',
