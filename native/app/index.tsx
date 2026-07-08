@@ -35,29 +35,26 @@ export default function HomeScreen() {
             <Text style={styles.title}>PERFECT FIT</Text>
           </View>
 
-          <View style={styles.decorRow} aria-hidden={true}>
-            <View style={styles.decorLeft}>
-              {[[0,0],[0,1],[1,0],[2,0],[2,1]].map(([r, c]) => (
-                <View
-                  key={`${r}-${c}`}
-                  style={[
-                    styles.decorCell,
-                    { left: c * 38, top: r * 38, backgroundColor: WOOD_MID },
-                  ]}
-                />
-              ))}
-            </View>
-            <View style={styles.decorRight}>
-              {[[0,0],[0,1],[1,1],[2,0],[2,1]].map(([r, c]) => (
-                <View
-                  key={`${r}-${c}`}
-                  style={[
-                    styles.decorCell,
-                    { left: c * 38, top: r * 38, backgroundColor: WOOD_LIGHT },
-                  ]}
-                />
-              ))}
-            </View>
+          {/* L + J tetrominoes: assembled they form a perfect 2×4 rectangle */}
+          <View style={styles.decorContainer}>
+            {([[0,0],[0,1],[1,0],[2,0]] as [number,number][]).map(([r, c]) => (
+              <LinearGradient
+                key={`a-${r}-${c}`}
+                colors={['#C09050', '#8F5A2D', '#6B3F18']}
+                start={{ x: 0.15, y: 0 }}
+                end={{ x: 0.85, y: 1 }}
+                style={[styles.decorCell, { left: c * 42 + 10, top: r * 42 + 12 }]}
+              />
+            ))}
+            {([[1,1],[2,1],[3,0],[3,1]] as [number,number][]).map(([r, c]) => (
+              <LinearGradient
+                key={`b-${r}-${c}`}
+                colors={['#D4A96A', '#B77940', '#8A501E']}
+                start={{ x: 0.15, y: 0 }}
+                end={{ x: 0.85, y: 1 }}
+                style={[styles.decorCell, { left: c * 42 + 30, top: r * 42 + 28 }]}
+              />
+            ))}
           </View>
 
           <View style={styles.buttons}>
