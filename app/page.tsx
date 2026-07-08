@@ -16,23 +16,24 @@ function getWoodBlockStyle(): CSSProperties {
   };
 }
 
-function getDecorativeTileStyle(tone: string): CSSProperties {
-  return {
-    backgroundColor: tone,
-    backgroundImage:
-      "linear-gradient(155deg, rgba(255,246,224,0.3), rgba(255,246,224,0.08) 42%, rgba(68,38,19,0.1) 72%, rgba(40,22,10,0.22)), repeating-linear-gradient(12deg, rgba(255,255,255,0.08) 0, rgba(255,255,255,0.08) 1px, rgba(67,37,19,0.06) 1px, rgba(67,37,19,0.06) 3px)",
-    border: "1px solid rgba(74, 39, 17, 0.5)",
-    boxShadow:
-      "inset 0 1px 0 rgba(255, 248, 229, 0.35), inset 0 -2px 4px rgba(45, 24, 10, 0.22), 0 4px 10px rgba(45,24,10,0.18)",
-    borderRadius: "0.5rem",
-  };
-}
+const PIECE_BG = [
+  "linear-gradient(155deg, rgba(255,248,225,0.28) 0%, rgba(255,244,210,0.06) 45%, rgba(40,22,10,0.2) 100%)",
+  "repeating-linear-gradient(12deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 2px, rgba(67,37,19,0.05) 2px, rgba(67,37,19,0.05) 5px)",
+  "repeating-linear-gradient(0deg, transparent 0px, transparent 39px, rgba(0,0,0,0.1) 39px, rgba(0,0,0,0.1) 40px)",
+  "repeating-linear-gradient(90deg, transparent 0px, transparent 39px, rgba(0,0,0,0.1) 39px, rgba(0,0,0,0.1) 40px)",
+].join(", ");
 
-function getDecorativePieceStyle(tone: string, clipPath: string): CSSProperties {
+function woodPiece(color: string, clip: string, left: number, top: number, width: number, height: number): CSSProperties {
   return {
-    ...getDecorativeTileStyle(tone),
-    clipPath,
-    borderRadius: 0,
+    position: "absolute",
+    left,
+    top,
+    width,
+    height,
+    backgroundColor: color,
+    backgroundImage: PIECE_BG,
+    clipPath: clip,
+    filter: "drop-shadow(0px 0px 1.5px rgba(51,27,12,0.5)) drop-shadow(3px 5px 8px rgba(51,27,12,0.28))",
   };
 }
 
@@ -60,22 +61,18 @@ export default function HomePage() {
           Perfect Fit
         </h1>
 
-        <div className="relative h-60 w-full max-w-[24rem]" aria-hidden="true">
-          <div
-            className="absolute left-0 top-0 h-60 w-[10rem]"
-            style={getDecorativePieceStyle(
-              "#A86631",
-              "polygon(0% 0%, 50% 0%, 50% 33.333%, 100% 33.333%, 100% 66.666%, 50% 66.666%, 50% 100%, 0% 100%)",
-            )}
-          />
-
-          <div
-            className="absolute right-0 top-0 h-60 w-[10rem]"
-            style={getDecorativePieceStyle(
-              "#B77940",
-              "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 66.666%, 50% 66.666%, 50% 33.333%, 0% 33.333%)",
-            )}
-          />
+        {/* 4 interlocking tetromino pieces that form a perfect 4×4 square */}
+        <div className="flex h-60 w-full max-w-[24rem] items-center justify-center" aria-hidden="true">
+          <div style={{ position: "relative", width: 200, height: 200 }}>
+            {/* L-shape: top-left, pulled up-left */}
+            <div style={woodPiece("#8F5A2D", "polygon(0px 0px, 80px 0px, 80px 40px, 40px 40px, 40px 120px, 0px 120px)", 12, 12, 80, 120)} />
+            {/* S-shape: top-right, pulled up-right */}
+            <div style={woodPiece("#B77940", "polygon(40px 0px, 120px 0px, 120px 40px, 80px 40px, 80px 80px, 0px 80px, 0px 40px, 40px 40px)", 68, 12, 120, 80)} />
+            {/* J-shape: bottom-right, pulled down-right */}
+            <div style={woodPiece("#A86631", "polygon(40px 0px, 80px 0px, 80px 120px, 40px 120px, 40px 80px, 0px 80px, 0px 40px, 40px 40px)", 108, 68, 80, 120)} />
+            {/* T-shape: bottom-left, pulled down-left */}
+            <div style={woodPiece("#C09050", "polygon(40px 0px, 80px 0px, 80px 40px, 120px 40px, 120px 80px, 0px 80px, 0px 40px, 40px 40px)", 12, 108, 120, 80)} />
+          </div>
         </div>
 
         <div className="grid w-full gap-3 pb-1">

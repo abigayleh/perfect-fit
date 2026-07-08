@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "Perfect Fit",
+    "slug": "perfect-fit",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "perfectfit",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.abigaylehickey.perfectfit"
+    },
+    "android": {
+      "package": "com.abigaylehickey.perfectfit",
+      "adaptiveIcon": {
+        "backgroundColor": "#A86631"
+      }
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
