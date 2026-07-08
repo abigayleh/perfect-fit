@@ -29,16 +29,8 @@ export default function LevelsScreen() {
       <SafeAreaView style={styles.safe}>
         <View style={styles.container}>
 
-          <View style={styles.headerRow}>
-            <Pressable
-              onPress={() => router.back()}
-              style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.75 : 1 }]}
-            >
-              <Text style={styles.backBtnText}>‹</Text>
-            </Pressable>
-            <View style={[styles.titleBox, { backgroundColor: WOOD_DARK }]}>
-              <Text style={styles.title}>LEVELS</Text>
-            </View>
+          <View style={[styles.titleBox, { backgroundColor: WOOD_DARK }]}>
+            <Text style={styles.title}>LEVELS</Text>
           </View>
 
           <ScrollView contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false}>
@@ -63,6 +55,13 @@ export default function LevelsScreen() {
               );
             })}
           </ScrollView>
+
+          <Pressable
+            onPress={() => router.replace('/')}
+            style={({ pressed }) => [styles.homeBtn, { opacity: pressed ? 0.85 : 1 }]}
+          >
+            <Text style={styles.homeBtnText}>HOME</Text>
+          </Pressable>
 
         </View>
       </SafeAreaView>
