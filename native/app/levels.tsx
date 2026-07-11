@@ -1,67 +1,107 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle, useSharedValue, withRepeat, withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MAX_LEVEL, getHighestUnlockedLevel } from '../lib/progress';
+import Icon from '../components/Icon';
+import WoodButton from '../components/WoodButton';
+import { MAX_LEVEL, getHighestCompletedLevel } from '../lib/progress';
+import { COLORS, FONTS, FRAME_SHADOW, INSET_SHADOW, TILE_SHADOW, WELL_SHADOW } from '../lib/theme';
 
-const WOOD_DARK = '#8F5A2D';
-const WOOD_MID = '#A86631';
+// chunk 1..MAX into rows of 3, padding the last row with nulls for alignment
+function rowsOfThree(max: number): (number | null)[][] {
+  const rows: (number | null)[][] = [];
+  for (let i = 1; i <= max; i += 3) {
+    const row: (number | null)[] = [i, i + 1, i + 2].map(n => (n <= max ? n : null));
+    rows.push(row);
+  }
+  return rows;
+}
 
 export default function LevelsScreen() {
   const router = useRouter();
-  const [highestUnlocked, setHighestUnlocked] = useState(1);
+  const [completed, setCompleted] = useState(0);
+  const pulse = useSharedValue(0);
 
-  useFocusEffect(
-    useCallback(() => {
-      getHighestUnlockedLevel().then(setHighestUnlocked);
-    }, []),
-  );
+  useFocusEffect(useCallback(() => { getHighestCompletedLevel().then(setCompleted); }, []));
+
+  useEffect(() => {
+    pulse.value = withRepeat(withTiming(1, { duration: 1100 }), -1, true);
+  }, []);
+
+  const pulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: 1 + 0.04 * pulse.value }] }));
 
   return (
-    <LinearGradient colors={['#fff7ed', '#ffedd5', '#fed7aa']} style={styles.gradient}>
+    <LinearGradient colors={COLORS.boardBg} style={styles.gradient}>
       <SafeAreaView style={styles.safe}>
         <View style={styles.container}>
 
-          <View style={[styles.titleBox, { backgroundColor: WOOD_DARK }]}>
+          <View style={styles.titleFrame}>
             <Text style={styles.title}>LEVELS</Text>
           </View>
 
-          <ScrollView contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false}>
-            {Array.from({ length: MAX_LEVEL }, (_, i) => {
-              const level = i + 1;
-              const locked = level > highestUnlocked;
-              return locked ? (
-                <View key={level} style={styles.lockedCell}>
-                  <Text style={styles.lockedNum}>{level}</Text>
+          <View style={styles.gridFrame}>
+            <View style={styles.gridWell}>
+              {rowsOfThree(MAX_LEVEL).map((row, r) => (
+                <View key={r} style={styles.gridRow}>
+                  {row.map((level, c) => {
+                    if (level === null) return <View key={`s${c}`} style={styles.cellSlot} />;
+                    const done = level <= completed;
+                    const current = level === completed + 1 && level <= MAX_LEVEL;
+                    const locked = level > completed + 1;
+                    const inner = (
+                      <Animated.View style={[styles.cellFill, current ? pulseStyle : null]}>
+                        <LinearGradient
+                          colors={current ? COLORS.current : done ? COLORS.tile : [COLORS.empty, COLORS.empty]}
+                          start={{ x: 0.12, y: 0 }}
+                          end={{ x: 0.88, y: 1 }}
+                          style={[
+                            styles.cell,
+                            { boxShadow: locked ? WELL_SHADOW : TILE_SHADOW },
+                            current ? styles.cellCurrent : null,
+                          ]}
+                        >
+                          {!locked && (
+                            <Text style={[styles.num, { color: current ? COLORS.ink : '#fff3e0' }]}>
+                              {level}
+                            </Text>
+                          )}
+                          {locked && <Icon name="lock" size={24} color="rgba(240,209,153,0.4)" />}
+                          {done && (
+                            <View style={styles.badge}>
+                              <Icon name="star" size={14} color="#ffdf8a" />
+                            </View>
+                          )}
+                        </LinearGradient>
+                      </Animated.View>
+                    );
+                    return locked ? (
+                      <View key={level} style={styles.cellSlot}>{inner}</View>
+                    ) : (
+                      <Pressable
+                        key={level}
+                        style={({ pressed }) => [styles.cellSlot, { opacity: pressed ? 0.85 : 1 }]}
+                        onPress={() => router.push(`/play?level=${level}`)}
+                      >
+                        {inner}
+                      </Pressable>
+                    );
+                  })}
                 </View>
-              ) : (
-                <Pressable
-                  key={level}
-                  style={({ pressed }) => [
-                    styles.levelCell,
-                    { backgroundColor: WOOD_MID, opacity: pressed ? 0.85 : 1 },
-                  ]}
-                  onPress={() => router.push(`/play?level=${level}`)}
-                >
-                  <Text style={styles.levelNum}>{level}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
+              ))}
+            </View>
+          </View>
 
-          <Pressable
+          <View style={{ flex: 1 }} />
+          <WoodButton
+            label="HOME"
+            variant="secondary"
             onPress={() => router.replace('/')}
-            style={({ pressed }) => [styles.homeBtn, { opacity: pressed ? 0.85 : 1 }]}
-          >
-            <Text style={styles.homeBtnText}>HOME</Text>
-          </Pressable>
+            icon={<Icon name="home" size={18} color={COLORS.gold} />}
+          />
 
         </View>
       </SafeAreaView>
@@ -72,87 +112,36 @@ export default function LevelsScreen() {
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
   safe: { flex: 1 },
-  container: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 16,
-    gap: 16,
-  },
-  titleBox: {
-    borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    shadowColor: '#331b0c',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+  container: { flex: 1, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 20 },
+  titleFrame: {
+    alignSelf: 'center', paddingVertical: 14, paddingHorizontal: 44, borderRadius: 20,
+    backgroundColor: COLORS.frame[0], marginBottom: 22, boxShadow: FRAME_SHADOW,
   },
   title: {
-    color: '#fff8ef',
-    fontSize: 28,
-    fontWeight: '900',
-    textAlign: 'center',
-    letterSpacing: 5,
+    fontFamily: FONTS.heading, fontSize: 30, color: COLORS.gold, letterSpacing: 3,
+    textShadowColor: 'rgba(0,0,0,0.45)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1,
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+  gridFrame: {
+    borderRadius: 24, backgroundColor: COLORS.frame[0], padding: 14,
+    boxShadow: 'inset 0px 3px 3px rgba(255,220,180,0.2), inset 0px -4px 5px rgba(0,0,0,0.35), 0px 10px 20px rgba(60,34,14,0.3)',
   },
-  levelCell: {
-    width: '30%',
-    aspectRatio: 1,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#331b0c',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-    elevation: 3,
+  gridWell: {
+    borderRadius: 16, backgroundColor: 'rgba(40,22,8,0.3)', padding: 14, gap: 13, boxShadow: INSET_SHADOW,
   },
-  levelNum: {
-    color: '#fff8ef',
-    fontSize: 36,
-    fontWeight: '900',
-    textAlign: 'center',
-    lineHeight: 36,
+  gridRow: { flexDirection: 'row', gap: 13 },
+  cellSlot: { flex: 1 },
+  cellFill: { width: '100%' },
+  cell: {
+    width: '100%', aspectRatio: 1 / 0.92, borderRadius: 16, alignItems: 'center', justifyContent: 'center',
   },
-  lockedCell: {
-    width: '30%',
-    aspectRatio: 1,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(253,186,116,0.5)',
-    backgroundColor: 'rgba(254,215,170,0.65)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  cellCurrent: { borderWidth: 3, borderColor: '#ffe7b0' },
+  num: {
+    fontFamily: FONTS.heading, fontSize: 32,
+    textShadowColor: 'rgba(40,20,6,0.4)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 2,
   },
-  lockedNum: {
-    color: 'rgba(154,74,16,0.4)',
-    fontSize: 36,
-    fontWeight: '900',
-    textAlign: 'center',
-    lineHeight: 36,
-  },
-  homeBtn: {
-    borderRadius: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    backgroundColor: WOOD_MID,
-    shadowColor: '#331b0c',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  homeBtnText: {
-    color: '#fff8ef',
-    fontSize: 15,
-    fontWeight: '900',
-    letterSpacing: 3,
+  badge: {
+    position: 'absolute', top: -6, right: -6, width: 26, height: 26, borderRadius: 13,
+    backgroundColor: '#dfa22e', alignItems: 'center', justifyContent: 'center',
+    boxShadow: '0px 2px 5px rgba(60,34,14,0.4)',
   },
 });

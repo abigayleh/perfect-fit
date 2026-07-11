@@ -43,6 +43,10 @@ export async function isLevelUnlocked(level: number): Promise<boolean> {
   return level >= 1 && level <= unlocked;
 }
 
+export async function resetProgress(): Promise<void> {
+  await AsyncStorage.removeItem(STORAGE_KEY);
+}
+
 export async function markLevelCompleted(level: number): Promise<void> {
   const clamped = clampLevel(level);
   const current = await getHighestCompletedLevel();

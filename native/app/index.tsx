@@ -1,99 +1,71 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle, useSharedValue, withRepeat, withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import Icon from '../components/Icon';
+import Tile from '../components/Tile';
+import WoodButton from '../components/WoodButton';
 import { getLastUncompletedLevel } from '../lib/progress';
+import { COLORS, FONTS, FRAME_SHADOW, INSET_SHADOW } from '../lib/theme';
 
-const WOOD_DARK = '#8F5A2D';
-const WOOD_MID = '#A86631';
-
-// 0 = empty board cell, 1/2/3 = filled piece
-const DEMO_BOARD = [
-  [1, 1, 2, 2],
-  [1, 1, 2, 2],
-  [3, 3, 0, 0],
-  [3, 3, 0, 0],
-] as const;
-
-const DEMO_COLORS: Record<number, readonly [string, string, string]> = {
-  1: ['#C09050', '#8F5A2D', '#6B3F18'],
-  2: ['#D4A96A', '#B77940', '#8A501E'],
-  3: ['#B88040', '#9C5E28', '#754018'],
-};
+// 3×3 preview: true = wood block, false = empty well
+const MINI = [true, false, true, true, true, true, false, true, false];
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [playLevel, setPlayLevel] = useState<number | null>(null);
+  const [playLevel, setPlayLevel] = useState(1);
+  const float = useSharedValue(0);
 
-  useFocusEffect(
-    useCallback(() => {
-      getLastUncompletedLevel().then(setPlayLevel);
-    }, []),
-  );
+  useFocusEffect(useCallback(() => { getLastUncompletedLevel().then(setPlayLevel); }, []));
+
+  useEffect(() => {
+    float.value = withRepeat(withTiming(1, { duration: 2500 }), -1, true);
+  }, []);
+
+  const floatStyle = useAnimatedStyle(() => ({ transform: [{ translateY: -8 * float.value }] }));
 
   return (
-    <LinearGradient colors={['#fff7ed', '#ffedd5', '#fed7aa']} style={styles.gradient}>
+    <LinearGradient colors={COLORS.boardBg} style={styles.gradient}>
       <SafeAreaView style={styles.safe}>
         <View style={styles.inner}>
 
-          <View style={[styles.titleBox, { backgroundColor: WOOD_DARK }]}>
-            <Text style={styles.title}>PERFECT FIT</Text>
+          <View style={styles.topRow}>
+            <Pressable
+              onPress={() => router.push('/settings')}
+              style={({ pressed }) => [styles.iconBtn, { opacity: pressed ? 0.85 : 1 }]}
+            >
+              <Icon name="gear" size={21} />
+            </Pressable>
           </View>
 
-          {/* Mini board: 3 pieces placed, one 2×2 gap showing where the last piece fits */}
-          <View style={styles.miniBoard}>
-            {DEMO_BOARD.map((row, r) => (
-              <View key={r} style={styles.miniBoardRow}>
-                {row.map((piece, c) => (
-                  <View key={c} style={styles.miniCell}>
-                    {piece > 0 && (
-                      <LinearGradient
-                        colors={DEMO_COLORS[piece]}
-                        start={{ x: 0.15, y: 0 }}
-                        end={{ x: 0.85, y: 1 }}
-                        style={StyleSheet.absoluteFill}
-                      />
-                    )}
-                  </View>
-                ))}
+          <View style={styles.center}>
+            <View style={styles.titleFrame}>
+              <Text style={styles.titlePerfect}>PERFECT</Text>
+              <Text style={styles.titleFit}>FIT</Text>
+            </View>
+
+            <Animated.View style={[styles.boardFrame, floatStyle]}>
+              <View style={styles.boardWell}>
+                <View style={styles.miniGrid}>
+                  {MINI.map((filled, i) => (
+                    <Tile key={i} size={40} radius={11} variant={filled ? 'filled' : 'empty'} />
+                  ))}
+                </View>
               </View>
-            ))}
+            </Animated.View>
           </View>
 
           <View style={styles.buttons}>
-            {playLevel !== null ? (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.button,
-                  { backgroundColor: WOOD_MID, opacity: pressed ? 0.85 : 1 },
-                ]}
-                onPress={() => router.push(`/play?level=${playLevel}`)}
-              >
-                <Text style={styles.buttonText}>PLAY</Text>
-              </Pressable>
-            ) : (
-              <View style={[styles.button, { backgroundColor: WOOD_MID, justifyContent: 'center' }]}>
-                <ActivityIndicator color="#fff7ed" />
-              </View>
-            )}
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.button,
-                { backgroundColor: WOOD_MID, opacity: pressed ? 0.85 : 1 },
-              ]}
-              onPress={() => router.push('/levels')}
-            >
-              <Text style={styles.buttonText}>LEVEL SELECTION</Text>
-            </Pressable>
+            <WoodButton
+              label="PLAY"
+              onPress={() => router.push(`/play?level=${playLevel}`)}
+              icon={<Icon name="play" size={20} color="#fff5e6" />}
+            />
+            <WoodButton label="LEVELS" variant="secondary" onPress={() => router.push('/levels')} />
           </View>
 
         </View>
@@ -105,70 +77,33 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
   safe: { flex: 1 },
-  inner: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  inner: { flex: 1, paddingHorizontal: 26, paddingVertical: 20, justifyContent: 'space-between' },
+  topRow: { flexDirection: 'row', justifyContent: 'flex-end' },
+  iconBtn: {
+    width: 50, height: 50, borderRadius: 15, backgroundColor: COLORS.frame[0],
+    alignItems: 'center', justifyContent: 'center',
+    boxShadow: 'inset 0px 2px 1px rgba(255,220,180,0.3), inset 0px -4px 3px rgba(0,0,0,0.35), 0px 5px 11px rgba(60,34,14,0.35)',
   },
-  titleBox: {
-    width: '100%',
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    shadowColor: '#331b0c',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.22,
-    shadowRadius: 10,
-    elevation: 5,
+  center: { alignItems: 'center', gap: 40 },
+  titleFrame: {
+    paddingTop: 24, paddingBottom: 24, paddingHorizontal: 34, borderRadius: 26,
+    backgroundColor: COLORS.frame[0], alignItems: 'center', boxShadow: FRAME_SHADOW,
   },
-  title: {
-    color: '#fff8ef',
-    fontSize: 36,
-    fontWeight: '900',
-    textAlign: 'center',
-    letterSpacing: 4,
+  titlePerfect: {
+    fontFamily: FONTS.heading, fontSize: 50, color: '#f3d9a8', letterSpacing: -1, lineHeight: 58,
+    textShadowColor: 'rgba(0,0,0,0.45)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1,
   },
-  miniBoard: {
-    alignSelf: 'center',
-    shadowColor: '#331b0c',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    elevation: 4,
+  titleFit: {
+    fontFamily: FONTS.heading, fontSize: 50, color: COLORS.goldBright, letterSpacing: 2, lineHeight: 58, marginTop: -8,
+    textShadowColor: 'rgba(0,0,0,0.45)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1,
   },
-  miniBoardRow: {
-    flexDirection: 'row',
+  boardFrame: {
+    padding: 12, borderRadius: 24, backgroundColor: COLORS.frame[0],
+    boxShadow: '0px 12px 22px rgba(60,34,14,0.35), inset 0px 2px 2px rgba(255,220,180,0.22), inset 0px -3px 4px rgba(0,0,0,0.3)',
   },
-  miniCell: {
-    width: 44,
-    height: 44,
-    borderWidth: 1,
-    borderColor: 'rgba(253,186,116,0.6)',
-    backgroundColor: 'rgba(255,255,255,0.65)',
-    borderRadius: 5,
-    overflow: 'hidden',
+  boardWell: {
+    borderRadius: 15, backgroundColor: 'rgba(40,22,8,0.34)', padding: 10, boxShadow: INSET_SHADOW,
   },
-  buttons: {
-    width: '100%',
-    gap: 12,
-  },
-  button: {
-    borderRadius: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    shadowColor: '#331b0c',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  buttonText: {
-    color: '#fff8ef',
-    fontSize: 15,
-    fontWeight: '900',
-    letterSpacing: 3,
-  },
+  miniGrid: { flexDirection: 'row', flexWrap: 'wrap', width: 40 * 3 + 7 * 2, gap: 7 },
+  buttons: { gap: 15 },
 });
