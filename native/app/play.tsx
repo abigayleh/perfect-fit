@@ -25,6 +25,7 @@ const TRAY_CELL = 34;
 const TRAY_GAP = 6;
 const BOARD_PADDING = 24;
 const TILE_INSET = 6; // visual gap; hit-testing stays on the cellSize grid
+const DRAG_SHADOW = '0px 12px 18px rgba(30,16,4,0.45)'; // lift shadow under a dragged piece
 
 function fmtTime(ms: number): string {
   const s = Math.floor(ms / 1000);
@@ -57,6 +58,8 @@ export default function PlayScreen() {
     () => Math.floor((Math.min(screenWidth, 420) - BOARD_PADDING * 2 - 52) / BOARD_SIZE),
     [screenWidth],
   );
+  // Lift the dragged piece ~1 cell above the finger so the thumb doesn't cover it or the ghost
+  const LIFT = cellSize;
 
   const initialPieces = useMemo(() => createLevelPieces(requestedLevel), [requestedLevel]);
 
@@ -81,10 +84,6 @@ export default function PlayScreen() {
   const boardScale = useSharedValue(1);
   const merge = useSharedValue(0);
   const shine = useSharedValue(0);
-  // Grid-snap the dragged piece when over the board so visual == drop target
-  const snapped = useSharedValue(0);
-  const snapX = useSharedValue(0);
-  const snapY = useSharedValue(0);
   // Dragged piece px bounds — used to center it under the finger
   const dragW = useSharedValue(cellSize);
   const dragH = useSharedValue(cellSize);
@@ -105,7 +104,8 @@ export default function PlayScreen() {
     boardViewRef.current?.measureInWindow((x, y) => { boardLayoutRef.current = { x, y }; });
   }
 
-  // Anchor cell for a piece centered under the finger, clamped fully onto the board
+  // Landing cell where the piece will drop — centered on the finger, clamped onto the board.
+  // The floating piece is drawn one cell above this (see LIFT), so the ghost stays visible below it.
   function anchorFor(absX: number, absY: number, piece: Piece) {
     const layout = boardLayoutRef.current;
     if (!layout) return null;
@@ -121,14 +121,16 @@ export default function PlayScreen() {
 
   function computeDropPos(absX: number, absY: number) {
     const piece = dragPieceRef.current;
-    if (!piece) { setDropPos(null); return; }
-    const a = anchorFor(absX, absY, piece);
-    if (!a) { snapped.value = 0; setDropPos(null); return; }
-    snapX.value = a.layout.x + a.col * cellSize;
-    snapY.value = a.layout.y + a.row * cellSize;
-    snapped.value = 1;
-    const valid = canPlacePiece(boardStateRef.current, piece, a.row, a.col);
-    setDropPos({ row: a.row, col: a.col, valid });
+    const a = piece ? anchorFor(absX, absY, piece) : null;
+    const next = a && piece
+      ? { row: a.row, col: a.col, valid: canPlacePiece(boardStateRef.current, piece, a.row, a.col) }
+      : null;
+    // Only re-render when the target cell or validity actually changes
+    setDropPos(prev => {
+      if (!prev && !next) return prev;
+      if (prev && next && prev.row === next.row && prev.col === next.col && prev.valid === next.valid) return prev;
+      return next;
+    });
   }
 
   function beginDrag(piece: Piece) {
@@ -136,7 +138,6 @@ export default function PlayScreen() {
     const { width: W, height: H } = getShapeBounds(piece.shape);
     dragW.value = W * cellSize;
     dragH.value = H * cellSize;
-    snapped.value = 0;
     dragPieceRef.current = piece;
     setDragPiece(piece);
     setScrollEnabled(false);
@@ -205,7 +206,6 @@ export default function PlayScreen() {
     boardScale.value = 1;
     merge.value = 0;
     shine.value = 0;
-    snapped.value = 0;
     dragPieceRef.current = null;
     placedPiecesRef.current.clear();
   }
@@ -223,9 +223,10 @@ export default function PlayScreen() {
   const boardPx = cellSize * BOARD_SIZE;
 
   const dragOverlayStyle = useAnimatedStyle(() => ({
-    transform: snapped.value
-      ? [{ translateX: snapX.value }, { translateY: snapY.value }]
-      : [{ translateX: dragX.value - dragW.value / 2 }, { translateY: dragY.value - dragH.value / 2 }],
+    transform: [
+      { translateX: dragX.value - dragW.value / 2 },
+      { translateY: dragY.value - dragH.value / 2 - LIFT },
+    ],
   }));
   const boardAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: boardScale.value }] }));
   const mergeStyle = useAnimatedStyle(() => ({
@@ -327,6 +328,21 @@ export default function PlayScreen() {
                       </View>
                     ))}
 
+                    {/* Ghost: soft shadow of the piece on the target cells */}
+                    {dragPiece && dropPos && dragPiece.shape.cells.map(([r, c]) => (
+                      <View
+                        key={`ghost-${r}-${c}`}
+                        pointerEvents="none"
+                        style={{
+                          position: 'absolute',
+                          left: (dropPos.col + c) * cellSize + TILE_INSET / 2,
+                          top: (dropPos.row + r) * cellSize + TILE_INSET / 2,
+                          width: tileInner, height: tileInner, borderRadius: 11,
+                          backgroundColor: dropPos.valid ? 'rgba(40,20,6,0.22)' : 'rgba(200,70,55,0.32)',
+                        }}
+                      />
+                    ))}
+
                     {/* Merge: tiles fuse into one solid block with a shine sweep */}
                     {merging && (
                       <Animated.View pointerEvents="none" style={[styles.mergeBlock, { width: boardPx, height: boardPx }, mergeStyle]}>
@@ -401,17 +417,9 @@ export default function PlayScreen() {
             {dragPiece.shape.cells.map(([r, c]) => (
               <View
                 key={`${r}-${c}`}
-                style={{ position: 'absolute', left: c * cellSize + TILE_INSET / 2, top: r * cellSize + TILE_INSET / 2, width: tileInner, height: tileInner }}
+                style={{ position: 'absolute', left: c * cellSize + TILE_INSET / 2, top: r * cellSize + TILE_INSET / 2, width: tileInner, height: tileInner, borderRadius: 11, boxShadow: DRAG_SHADOW }}
               >
-                <Tile size={tileInner} radius={11} style={{ opacity: 0.92 }} />
-                {dropPos && (
-                  <View
-                    style={[
-                      StyleSheet.absoluteFill,
-                      { borderRadius: 11, backgroundColor: dropPos.valid ? 'rgba(120,220,120,0.55)' : 'rgba(220,90,70,0.55)' },
-                    ]}
-                  />
-                )}
+                <Tile size={tileInner} radius={11} />
               </View>
             ))}
           </Animated.View>
