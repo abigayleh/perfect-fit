@@ -70,11 +70,6 @@ export default function LevelsScreen() {
                             </Text>
                           )}
                           {locked && <Icon name="lock" size={24} color="rgba(240,209,153,0.4)" />}
-                          {done && (
-                            <View style={styles.badge}>
-                              <Icon name="star" size={14} color="#ffdf8a" />
-                            </View>
-                          )}
                         </LinearGradient>
                       </Animated.View>
                     );
@@ -138,10 +133,5 @@ const styles = StyleSheet.create({
   num: {
     fontFamily: FONTS.heading, fontSize: 32,
     textShadowColor: 'rgba(40,20,6,0.4)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 2,
-  },
-  badge: {
-    position: 'absolute', top: -6, right: -6, width: 26, height: 26, borderRadius: 13,
-    backgroundColor: '#dfa22e', alignItems: 'center', justifyContent: 'center',
-    boxShadow: '0px 2px 5px rgba(60,34,14,0.4)',
   },
 });
