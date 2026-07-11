@@ -438,9 +438,11 @@ export default function PlayScreen() {
             <View style={styles.completeCenter}>
               <View style={styles.starsRow}>
                 {[0, 1, 2].map(i => (
-                  <Animated.View key={i} entering={ZoomIn.delay(80 + i * 130).springify().damping(9)} style={{ transform: [{ translateY: i === 1 ? -16 : 0 }] }}>
-                    <Icon name="star" size={i === 1 ? 80 : 62} color={COLORS.star} />
-                  </Animated.View>
+                  <View key={i} style={{ transform: [{ translateY: i === 1 ? -16 : 0 }] }}>
+                    <Animated.View entering={ZoomIn.delay(80 + i * 130).springify().damping(9)}>
+                      <Icon name="star" size={i === 1 ? 80 : 62} color={COLORS.star} />
+                    </Animated.View>
+                  </View>
                 ))}
               </View>
 
