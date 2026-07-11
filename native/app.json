@@ -4,6 +4,7 @@
     "slug": "perfect-fit",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "scheme": "perfectfit",
     "ios": {
       "supportsTablet": false,
@@ -15,6 +16,7 @@
     "android": {
       "package": "com.abigaylehickey.perfectfit",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#A86631"
       }
     },
