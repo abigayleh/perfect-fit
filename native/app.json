@@ -7,7 +7,10 @@
     "scheme": "perfectfit",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.abigaylehickey.perfectfit"
+      "bundleIdentifier": "com.abigaylehickey.perfectfit",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.abigaylehickey.perfectfit",
@@ -21,6 +24,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d13f5540-7b30-407b-9617-ace5df0c6620"
+      }
+    },
+    "owner": "abigayleh"
   }
 }

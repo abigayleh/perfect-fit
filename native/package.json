@@ -4,20 +4,20 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
-    "ios": "expo start --ios",
-    "android": "expo start --android"
+    "ios": "expo run:ios",
+    "android": "expo run:android"
   },
   "dependencies": {
     "@expo-google-fonts/baloo-2": "^0.4.2",
     "@expo-google-fonts/nunito": "^0.4.2",
     "@react-native-async-storage/async-storage": "2.2.0",
-    "expo": "~57.0.2",
+    "expo": "~57.0.4",
     "expo-font": "~57.0.0",
     "expo-linear-gradient": "~57.0.0",
     "expo-linking": "~57.0.2",
-    "expo-router": "~57.0.3",
+    "expo-router": "~57.0.4",
     "expo-status-bar": "~57.0.0",
-    "react": "19.2.3",
+    "react": "19.2.7",
     "react-native": "0.86.0",
     "react-native-gesture-handler": "~2.32.0",
     "react-native-reanimated": "4.5.0",
