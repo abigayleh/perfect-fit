@@ -58,8 +58,9 @@ export default function PlayScreen() {
     () => Math.floor((Math.min(screenWidth, 420) - BOARD_PADDING * 2 - 52) / BOARD_SIZE),
     [screenWidth],
   );
-  // Offset the floating piece down-right of its ghost so the ghost leads at the top-left
-  const DRAG_OFFSET = cellSize * 0.7;
+  // Lift the floating piece one cell straight up from the finger: aligned over the
+  // ghost, clear of the thumb, and never drifting off the board or into the tray.
+  const DRAG_LIFT = cellSize;
 
   const initialPieces = useMemo(() => createLevelPieces(requestedLevel), [requestedLevel]);
 
@@ -107,7 +108,7 @@ export default function PlayScreen() {
   }
 
   // Landing cell where the piece will drop — centered on the finger, clamped onto the board.
-  // The floating piece is drawn down-right of this (see DRAG_OFFSET), so the ghost leads at the top-left.
+  // The floating piece is drawn one cell above this (see DRAG_LIFT), so the ghost stays visible below it.
   function anchorFor(absX: number, absY: number, piece: Piece) {
     const layout = boardLayoutRef.current;
     if (!layout) return null;
@@ -228,8 +229,8 @@ export default function PlayScreen() {
 
   const dragOverlayStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateX: dragX.value - dragW.value / 2 + DRAG_OFFSET },
-      { translateY: dragY.value - dragH.value / 2 + DRAG_OFFSET },
+      { translateX: dragX.value - dragW.value / 2 },
+      { translateY: dragY.value - dragH.value / 2 - DRAG_LIFT },
     ],
   }));
   const boardAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: boardScale.value }] }));
