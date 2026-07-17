@@ -86,7 +86,9 @@ const styles = StyleSheet.create({
   },
   center: { alignItems: 'center', gap: 40 },
   titleFrame: {
-    paddingTop: 24, paddingBottom: 24, paddingHorizontal: 34, borderRadius: 26,
+    // paddingBottom is trimmed vs paddingTop to offset the empty descender space
+    // Baloo2 reserves under "FIT" inside its line box, so the text reads centered.
+    paddingTop: 26, paddingBottom: 12, paddingHorizontal: 34, borderRadius: 26,
     backgroundColor: COLORS.frame[0], alignItems: 'center', boxShadow: FRAME_SHADOW,
   },
   titlePerfect: {
