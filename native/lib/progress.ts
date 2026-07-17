@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const MAX_LEVEL = 25;
+export const MAX_LEVEL = 100;
 
 const STORAGE_KEY = 'perfect-fit-progress-v1';
 

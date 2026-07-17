@@ -1,9 +1,9 @@
-// Guards the level catalog: every level must have a real perfect tiling of the
-// 4x4 board. Reads the actual level data via createLevelPieces, so a broken or
-// unsolvable level added later fails here before it ships.
+// Guards the level catalog: every level must have a real perfect tiling of its
+// board (4x4, 5x5, or 6x6 depending on level). Reads the actual level data via
+// createLevelPieces, so a broken or unsolvable level added later fails here.
 import {
-  BOARD_SIZE, Piece, ShapeCells,
-  createLevelPieces, getLevelDifficulty, normalizeCells, rotateCellsClockwise,
+  Piece, ShapeCells,
+  createLevelPieces, getBoardSize, getLevelDifficulty, normalizeCells, rotateCellsClockwise,
 } from '../levels';
 import { MAX_LEVEL } from '../progress';
 
@@ -23,16 +23,15 @@ function orientations(piece: Piece): ShapeCells[] {
   return out;
 }
 
-// Backtracking exact-cover solver. Always fills the top-left-most empty cell,
-// which bounds the search and guarantees a definitive yes/no.
-function isSolvable(pieces: Piece[]): boolean {
-  const N = BOARD_SIZE;
-  const occ = Array.from({ length: N }, () => Array<boolean>(N).fill(false));
+// Backtracking exact-cover solver for an N x N board. Always fills the top-left-most
+// empty cell, which bounds the search and guarantees a definitive yes/no.
+function isSolvable(pieces: Piece[], size: number): boolean {
+  const occ = Array.from({ length: size }, () => Array<boolean>(size).fill(false));
   const oris = pieces.map(orientations);
   const used = Array<boolean>(pieces.length).fill(false);
 
   function firstEmpty(): [number, number] | null {
-    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (!occ[r][c]) return [r, c];
+    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) if (!occ[r][c]) return [r, c];
     return null;
   }
 
@@ -49,7 +48,7 @@ function isSolvable(pieces: Piece[]): boolean {
           const ac = ec - pc;
           const fits = shape.every(([dr, dc]) => {
             const r = ar + dr, c = ac + dc;
-            return r >= 0 && r < N && c >= 0 && c < N && !occ[r][c];
+            return r >= 0 && r < size && c >= 0 && c < size && !occ[r][c];
           });
           if (!fits) continue;
           shape.forEach(([dr, dc]) => { occ[ar + dr][ac + dc] = true; });
@@ -67,16 +66,17 @@ function isSolvable(pieces: Piece[]): boolean {
 
 const levels = Array.from({ length: MAX_LEVEL }, (_, i) => i + 1);
 
-describe('every level fills the board exactly', () => {
-  test.each(levels)('level %i covers 16 cells', (lvl) => {
+describe('every level fills its board exactly', () => {
+  test.each(levels)('level %i covers every cell', (lvl) => {
+    const size = getBoardSize(lvl);
     const total = createLevelPieces(lvl).reduce((s, p) => s + p.shape.cells.length, 0);
-    expect(total).toBe(BOARD_SIZE * BOARD_SIZE);
+    expect(total).toBe(size * size);
   });
 });
 
 describe('every level has a perfect tiling', () => {
   test.each(levels)('level %i is solvable', (lvl) => {
-    expect(isSolvable(createLevelPieces(lvl))).toBe(true);
+    expect(isSolvable(createLevelPieces(lvl), getBoardSize(lvl))).toBe(true);
   });
 });
 
@@ -90,7 +90,7 @@ describe('solver rejects impossible tilings', () => {
   test('bar + three squares is not solvable', () => {
     const bar = piece([[0, 0], [0, 1], [0, 2], [0, 3]]);
     const sq = () => piece([[0, 0], [0, 1], [1, 0], [1, 1]]);
-    expect(isSolvable([bar, sq(), sq(), sq()])).toBe(false);
+    expect(isSolvable([bar, sq(), sq(), sq()], 4)).toBe(false);
   });
 });
 

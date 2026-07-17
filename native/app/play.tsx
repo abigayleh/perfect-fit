@@ -13,8 +13,8 @@ import Icon from '../components/Icon';
 import Tile from '../components/Tile';
 import WoodButton from '../components/WoodButton';
 import {
-  BOARD_SIZE, BoardCell, Piece,
-  canPlacePiece, createEmptyBoard, createLevelPieces, getLevelDifficulty,
+  BoardCell, Piece,
+  canPlacePiece, createEmptyBoard, createLevelPieces, getBoardSize, getLevelDifficulty,
   getMaxRotatedBounds, getShapeBounds, normalizeBoard, placePiece, rotateCellsClockwise,
 } from '../lib/levels';
 import { MAX_LEVEL, markLevelCompleted } from '../lib/progress';
@@ -54,19 +54,21 @@ export default function PlayScreen() {
     return Math.min(Math.max(n, 1), MAX_LEVEL);
   }, [levelParam]);
 
+  const initialPieces = useMemo(() => createLevelPieces(requestedLevel), [requestedLevel]);
+
+  const [level, setLevel] = useState(requestedLevel);
+  const boardSize = getBoardSize(level);
+
   const cellSize = useMemo(
-    () => Math.floor((Math.min(screenWidth, 420) - BOARD_PADDING * 2 - 52) / BOARD_SIZE),
-    [screenWidth],
+    () => Math.floor((Math.min(screenWidth, 420) - BOARD_PADDING * 2 - 52) / boardSize),
+    [screenWidth, boardSize],
   );
   // Lift the floating piece one cell straight up from the finger: aligned over the
   // ghost, clear of the thumb, and never drifting off the board or into the tray.
   const DRAG_LIFT = cellSize;
 
-  const initialPieces = useMemo(() => createLevelPieces(requestedLevel), [requestedLevel]);
-
-  const [level, setLevel] = useState(requestedLevel);
   const [levelPieces, setLevelPieces] = useState<Piece[]>(initialPieces);
-  const [board, setBoard] = useState<BoardCell[][]>(() => createEmptyBoard());
+  const [board, setBoard] = useState<BoardCell[][]>(() => createEmptyBoard(getBoardSize(requestedLevel)));
   const [tray, setTray] = useState<Piece[]>(initialPieces);
   const [dragPiece, setDragPiece] = useState<Piece | null>(null);
   const [dropPos, setDropPos] = useState<{ row: number; col: number; valid: boolean } | null>(null);
@@ -115,10 +117,10 @@ export default function PlayScreen() {
     const { width: W, height: H } = getShapeBounds(piece.shape);
     const fx = absX - layout.x;
     const fy = absY - layout.y;
-    const boardPx = cellSize * BOARD_SIZE;
+    const boardPx = cellSize * boardSize;
     if (fx < 0 || fy < 0 || fx > boardPx || fy > boardPx) return null;
-    const col = clamp(Math.round(fx / cellSize - W / 2), 0, BOARD_SIZE - W);
-    const row = clamp(Math.round(fy / cellSize - H / 2), 0, BOARD_SIZE - H);
+    const col = clamp(Math.round(fx / cellSize - W / 2), 0, boardSize - W);
+    const row = clamp(Math.round(fy / cellSize - H / 2), 0, boardSize - H);
     return { row, col, layout };
   }
 
@@ -195,8 +197,8 @@ export default function PlayScreen() {
     );
   }
 
-  function resetPlayState(pieces: Piece[]) {
-    setBoard(createEmptyBoard());
+  function resetPlayState(pieces: Piece[], size: number) {
+    setBoard(createEmptyBoard(size));
     setTray(pieces);
     setDragPiece(null);
     setDropPos(null);
@@ -220,12 +222,12 @@ export default function PlayScreen() {
     const pieces = createLevelPieces(clamped);
     setLevel(clamped);
     setLevelPieces(pieces);
-    resetPlayState(pieces);
+    resetPlayState(pieces, getBoardSize(clamped));
   }
 
-  function restartGame() { resetPlayState(levelPieces); }
+  function restartGame() { resetPlayState(levelPieces, boardSize); }
 
-  const boardPx = cellSize * BOARD_SIZE;
+  const boardPx = cellSize * boardSize;
 
   const dragOverlayStyle = useAnimatedStyle(() => ({
     transform: [
@@ -275,7 +277,7 @@ export default function PlayScreen() {
     if (!layout) return;
     const col = Math.floor((absX - layout.x) / cellSize);
     const row = Math.floor((absY - layout.y) / cellSize);
-    if (row < 0 || col < 0 || row >= BOARD_SIZE || col >= BOARD_SIZE) return;
+    if (row < 0 || col < 0 || row >= boardSize || col >= boardSize) return;
     const cell = boardStateRef.current[row]?.[col];
     if (!cell) return;
     pickupFromBoard(cell.pieceId);
@@ -337,7 +339,7 @@ export default function PlayScreen() {
             <Animated.View style={[styles.boardFrame, boardAnimStyle]}>
               <View style={styles.boardWell}>
                 <GestureDetector gesture={boardGesture}>
-                  <View ref={boardViewRef} style={{ width: cellSize * BOARD_SIZE }} onLayout={measureBoard}>
+                  <View ref={boardViewRef} style={{ width: cellSize * boardSize }} onLayout={measureBoard}>
                     {safeBoard.map((row, rIdx) => (
                       <View key={rIdx} style={styles.boardRow}>
                         {row.map((cell, cIdx) => (

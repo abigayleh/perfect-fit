@@ -42,7 +42,10 @@ Do not write code until this process is complete.
 The Expo app lives in `native/`. Run `cd native && npm test` (jest-expo, node env).
 The suite in `native/lib/__tests__/` backtrack-solves every level from the real
 `createLevelPieces` data — run it before any release to catch an unsolvable level.
-Level shapes/difficulty are defined in `native/lib/levels.ts`; `MAX_LEVEL` in `native/lib/progress.ts`.
+100 levels: 1-25 are 4x4, 26-75 5x5, 76-100 6x6 (see `getBoardSize` in `native/lib/levels.ts`).
+Level tilings + difficulty live in `native/lib/level-presets.ts`; 26-100 are generated and
+solver-verified by `native/scripts/build-presets.js` (seeded, idempotent — rerun to regenerate).
+`MAX_LEVEL` is in `native/lib/progress.ts`.
 
 ## Codebase Exploration & Knowledge Sharing
 
