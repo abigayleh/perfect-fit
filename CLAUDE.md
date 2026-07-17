@@ -37,6 +37,13 @@ Do not write code until this process is complete.
 - Prefer global styles over scoped/inline styles
 - No style duplication
 
+## Testing
+
+The Expo app lives in `native/`. Run `cd native && npm test` (jest-expo, node env).
+The suite in `native/lib/__tests__/` backtrack-solves every level from the real
+`createLevelPieces` data — run it before any release to catch an unsolvable level.
+Level shapes/difficulty are defined in `native/lib/levels.ts`; `MAX_LEVEL` in `native/lib/progress.ts`.
+
 ## Codebase Exploration & Knowledge Sharing
 
 Before starting non-trivial work, especially in an unfamiliar part of the codebase, explore first:
