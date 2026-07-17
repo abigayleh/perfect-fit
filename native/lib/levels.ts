@@ -33,6 +33,23 @@ type LevelPiecePreset = {
   initialRotation?: number;
 };
 
+export type Difficulty = 'easy' | 'medium' | 'hard';
+
+// Difficulty curve: mostly easy/medium with an occasional hard spike (7, 13, 19,
+// 24), and an easy level right after each spike so it reads as a win, not a wall.
+// Only hard levels require rotating pieces; easy/medium never do.
+const LEVEL_DIFFICULTY: Record<number, Difficulty> = {
+  1: 'easy', 2: 'easy', 3: 'easy', 4: 'medium', 5: 'medium',
+  6: 'medium', 7: 'hard', 8: 'easy', 9: 'easy', 10: 'medium',
+  11: 'medium', 12: 'medium', 13: 'hard', 14: 'easy', 15: 'medium',
+  16: 'medium', 17: 'medium', 18: 'medium', 19: 'hard', 20: 'easy',
+  21: 'medium', 22: 'medium', 23: 'medium', 24: 'hard', 25: 'medium',
+};
+
+export function getLevelDifficulty(level: number): Difficulty {
+  return LEVEL_DIFFICULTY[level] ?? 'medium';
+}
+
 const PRESET_LEVELS: Record<number, LevelPiecePreset[]> = {
   1: [
     { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
@@ -41,66 +58,148 @@ const PRESET_LEVELS: Record<number, LevelPiecePreset[]> = {
     { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
   ],
   2: [
-    { cells: [[0, 0], [0, 1]] },
-    { cells: [[0, 0], [0, 1]] },
-    { cells: [[0, 0], [1, 0]] },
-    { cells: [[0, 0], [0, 1]] },
-    { cells: [[0, 0], [1, 0]] },
-    { cells: [[0, 0], [0, 1]] },
-    { cells: [[0, 0], [0, 1]] },
-    { cells: [[0, 0], [0, 1]] },
+    { cells: [[0, 0], [0, 1], [0, 2], [0, 3]] },
+    { cells: [[0, 0], [0, 1], [0, 2], [0, 3]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
   ],
   3: [
-    { cells: [[0, 0], [0, 1], [0, 2], [1, 2]] },
-    { cells: [[0, 0], [1, 0], [2, 0], [3, 0]] },
-    { cells: [[0, 0], [0, 1]] },
-    { cells: [[0, 0], [1, 0], [1, 1]] },
-    { cells: [[0, 0], [0, 1], [1, 1]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [0, 1], [0, 2], [0, 3]] },
+    { cells: [[0, 0], [0, 1], [0, 2], [0, 3]] },
   ],
   4: [
-    { cells: [[0, 0], [0, 1], [1, 0]] },
-    { cells: [[0, 0], [0, 1], [1, 1]] },
-    { cells: [[0, 0], [0, 1], [1, 0]] },
-    { cells: [[0, 0], [1, 0], [1, 1]] },
-    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [1, 0], [2, 0], [2, 1]] },
+    { cells: [[0, 0], [0, 1], [0, 2], [1, 2]] },
+    { cells: [[0, 0], [0, 1], [1, 1], [1, 2]] },
+    { cells: [[0, 0], [0, 1], [0, 2], [0, 3]] },
   ],
   5: [
     { cells: [[0, 0], [0, 1], [0, 2], [1, 1]] },
-    { cells: [[0, 0], [1, 0], [2, 0], [3, 0]] },
+    { cells: [[0, 1], [1, 0], [1, 1], [2, 1]] },
     { cells: [[0, 0], [1, 0], [2, 0], [2, 1]] },
-    { cells: [[0, 1], [1, 0], [1, 1], [2, 1]] },
-  ],
-  6: [
-    { cells: [[0, 0], [0, 1], [0, 2], [1, 2]], rotatable: true, initialRotation: 1 },
-    { cells: [[0, 0], [1, 0], [2, 0], [2, 1]], rotatable: true, initialRotation: 3 },
-    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
-    { cells: [[0, 0], [1, 0], [2, 0], [3, 0]] },
-  ],
-  7: [
-    { cells: [[0, 0], [0, 1], [0, 2], [1, 1]], rotatable: true, initialRotation: 2 },
-    { cells: [[0, 0], [1, 0], [1, 1]], rotatable: true, initialRotation: 1 },
-    { cells: [[0, 1], [1, 0], [1, 1], [2, 1]] },
-    { cells: [[0, 0], [0, 1], [1, 1]] },
-    { cells: [[0, 0], [0, 1]] },
-  ],
-  8: [
-    { cells: [[0, 0], [1, 0], [2, 0], [3, 0]], rotatable: true, initialRotation: 1 },
-    { cells: [[0, 0], [0, 1], [1, 1]], rotatable: true, initialRotation: 2 },
-    { cells: [[0, 0], [1, 0]] },
-    { cells: [[0, 0], [0, 1], [1, 1]] },
-    { cells: [[0, 0], [0, 1], [0, 2], [1, 1]], rotatable: true, initialRotation: 3 },
-  ],
-  9: [
-    { cells: [[0, 0], [0, 1], [0, 2], [1, 0]], rotatable: true, initialRotation: 1 },
-    { cells: [[0, 0], [1, 0], [2, 0], [2, 1]], rotatable: true, initialRotation: 2 },
-    { cells: [[0, 0], [0, 1], [1, 1], [1, 2]], rotatable: true, initialRotation: 1 },
     { cells: [[0, 0], [0, 1], [1, 1], [1, 2]] },
   ],
+  6: [
+    { cells: [[0, 0], [0, 1], [1, 1], [1, 2]] },
+    { cells: [[0, 0], [0, 1], [1, 1], [2, 1]] },
+    { cells: [[0, 0], [1, 0], [1, 1], [2, 0]] },
+    { cells: [[0, 1], [1, 0], [1, 1], [1, 2]] },
+  ],
+  7: [
+    { cells: [[0, 0], [1, 0], [2, 0], [2, 1]], rotatable: true, initialRotation: 1 },
+    { cells: [[0, 0], [0, 1], [0, 2], [1, 0]], rotatable: true, initialRotation: 1 },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [0, 1], [0, 2], [0, 3]], rotatable: true, initialRotation: 1 },
+  ],
+  8: [
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+  ],
+  9: [
+    { cells: [[0, 0], [0, 1], [0, 2], [0, 3]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [0, 1], [0, 2], [0, 3]] },
+  ],
   10: [
-    { cells: [[0, 0], [0, 1], [0, 2], [1, 1]], rotatable: true, initialRotation: 1 },
-    { cells: [[0, 0], [1, 0], [1, 1], [2, 1]], rotatable: true, initialRotation: 2 },
-    { cells: [[0, 1], [1, 0], [1, 1], [1, 2]], rotatable: true, initialRotation: 3 },
+    { cells: [[0, 0], [0, 1], [0, 2], [1, 0]] },
+    { cells: [[0, 2], [1, 0], [1, 1], [1, 2]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+  ],
+  11: [
+    { cells: [[0, 0], [1, 0], [2, 0], [3, 0]] },
+    { cells: [[0, 0], [0, 1], [0, 2], [1, 0]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [1, 0], [1, 1], [1, 2]] },
+  ],
+  12: [
+    { cells: [[0, 0], [0, 1], [0, 2], [1, 2]] },
+    { cells: [[0, 1], [1, 1], [2, 0], [2, 1]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [2, 0]] },
+    { cells: [[0, 0], [1, 0], [1, 1], [1, 2]] },
+  ],
+  13: [
+    { cells: [[0, 0], [0, 1], [0, 2], [0, 3]], rotatable: true, initialRotation: 1 },
+    { cells: [[0, 0], [0, 1], [0, 2], [1, 0]], rotatable: true, initialRotation: 1 },
+    { cells: [[0, 1], [1, 0], [1, 1], [2, 1]], rotatable: true, initialRotation: 1 },
+    { cells: [[0, 1], [1, 0], [1, 1], [1, 2]], rotatable: true, initialRotation: 1 },
+  ],
+  14: [
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [0, 1], [0, 2], [0, 3]] },
+    { cells: [[0, 0], [0, 1], [0, 2], [0, 3]] },
+  ],
+  15: [
+    { cells: [[0, 0], [1, 0], [2, 0], [3, 0]] },
+    { cells: [[0, 0], [0, 1], [0, 2], [1, 0]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [1, 0], [1, 1], [1, 2]] },
+  ],
+  16: [
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [0, 1], [1, 1], [2, 1]] },
+    { cells: [[0, 2], [1, 0], [1, 1], [1, 2]] },
+    { cells: [[0, 0], [0, 1], [0, 2], [0, 3]] },
+  ],
+  17: [
+    { cells: [[0, 0], [1, 0], [2, 0], [2, 1]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [1, 0], [2, 0], [3, 0]] },
+    { cells: [[0, 2], [1, 0], [1, 1], [1, 2]] },
+  ],
+  18: [
+    { cells: [[0, 0], [0, 1], [0, 2], [1, 0]] },
+    { cells: [[0, 2], [1, 0], [1, 1], [1, 2]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+  ],
+  19: [
+    { cells: [[0, 0], [0, 1], [1, 1], [1, 2]], rotatable: true, initialRotation: 1 },
+    { cells: [[0, 0], [0, 1], [1, 1], [2, 1]], rotatable: true, initialRotation: 1 },
+    { cells: [[0, 0], [1, 0], [1, 1], [2, 0]], rotatable: true, initialRotation: 1 },
+    { cells: [[0, 1], [1, 0], [1, 1], [1, 2]], rotatable: true, initialRotation: 1 },
+  ],
+  20: [
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+  ],
+  21: [
+    { cells: [[0, 0], [0, 1], [0, 2], [0, 3]] },
+    { cells: [[0, 0], [1, 0], [2, 0], [2, 1]] },
+    { cells: [[0, 0], [0, 1], [0, 2], [1, 2]] },
+    { cells: [[0, 0], [0, 1], [1, 1], [1, 2]] },
+  ],
+  22: [
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [0, 1], [0, 2], [1, 0]] },
+    { cells: [[0, 2], [1, 0], [1, 1], [1, 2]] },
+  ],
+  23: [
+    { cells: [[0, 0], [0, 1], [1, 0], [2, 0]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 1], [1, 1], [2, 0], [2, 1]] },
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+  ],
+  24: [
+    { cells: [[0, 0], [1, 0], [2, 0], [2, 1]], rotatable: true, initialRotation: 1 },
     { cells: [[0, 0], [0, 1], [0, 2], [1, 2]], rotatable: true, initialRotation: 1 },
+    { cells: [[0, 0], [0, 1], [1, 1], [1, 2]], rotatable: true, initialRotation: 1 },
+    { cells: [[0, 0], [0, 1], [0, 2], [0, 3]], rotatable: true, initialRotation: 1 },
+  ],
+  25: [
+    { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { cells: [[0, 0], [0, 1], [1, 1], [2, 1]] },
+    { cells: [[0, 2], [1, 0], [1, 1], [1, 2]] },
+    { cells: [[0, 0], [0, 1], [0, 2], [0, 3]] },
   ],
 };
 

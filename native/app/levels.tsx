@@ -1,13 +1,14 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle, useSharedValue, withRepeat, withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from '../components/Icon';
 import WoodButton from '../components/WoodButton';
+import { getLevelDifficulty } from '../lib/levels';
 import { MAX_LEVEL, getHighestCompletedLevel } from '../lib/progress';
 import { COLORS, FONTS, FRAME_SHADOW, INSET_SHADOW, TILE_SHADOW, WELL_SHADOW } from '../lib/theme';
 
@@ -44,7 +45,11 @@ export default function LevelsScreen() {
           </View>
 
           <View style={styles.gridFrame}>
-            <View style={styles.gridWell}>
+            <ScrollView
+              style={styles.gridWell}
+              contentContainerStyle={styles.gridWellContent}
+              showsVerticalScrollIndicator={false}
+            >
               {rowsOfThree(MAX_LEVEL).map((row, r) => (
                 <View key={r} style={styles.gridRow}>
                   {row.map((level, c) => {
@@ -70,6 +75,11 @@ export default function LevelsScreen() {
                             </Text>
                           )}
                           {locked && <Icon name="lock" size={24} color="rgba(240,209,153,0.4)" />}
+                          {getLevelDifficulty(level) === 'hard' && (
+                            <View style={styles.hardPill}>
+                              <Text style={styles.hardPillText}>HARD</Text>
+                            </View>
+                          )}
                         </LinearGradient>
                       </Animated.View>
                     );
@@ -87,10 +97,9 @@ export default function LevelsScreen() {
                   })}
                 </View>
               ))}
-            </View>
+            </ScrollView>
           </View>
 
-          <View style={{ flex: 1 }} />
           <WoodButton
             label="HOME"
             variant="secondary"
@@ -117,13 +126,23 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.45)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1,
   },
   gridFrame: {
+    flex: 1, marginBottom: 18,
     borderRadius: 24, backgroundColor: COLORS.frame[0], padding: 14,
     boxShadow: 'inset 0px 3px 3px rgba(255,220,180,0.2), inset 0px -4px 5px rgba(0,0,0,0.35), 0px 10px 20px rgba(60,34,14,0.3)',
   },
   gridWell: {
-    borderRadius: 16, backgroundColor: 'rgba(40,22,8,0.3)', padding: 14, gap: 13, boxShadow: INSET_SHADOW,
+    flex: 1, borderRadius: 16, backgroundColor: 'rgba(40,22,8,0.3)', boxShadow: INSET_SHADOW,
   },
+  gridWellContent: { padding: 14, gap: 13 },
   gridRow: { flexDirection: 'row', gap: 13 },
+  hardPill: {
+    position: 'absolute', bottom: 7, left: 0, right: 0, alignItems: 'center',
+  },
+  hardPillText: {
+    fontFamily: FONTS.heading, fontSize: 9, color: '#fff3e0', letterSpacing: 1,
+    paddingVertical: 2, paddingHorizontal: 7, borderRadius: 7, overflow: 'hidden',
+    backgroundColor: COLORS.danger,
+  },
   cellSlot: { flex: 1 },
   cellFill: { width: '100%' },
   cell: {

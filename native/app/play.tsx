@@ -14,7 +14,7 @@ import Tile from '../components/Tile';
 import WoodButton from '../components/WoodButton';
 import {
   BOARD_SIZE, BoardCell, Piece,
-  canPlacePiece, createEmptyBoard, createLevelPieces,
+  canPlacePiece, createEmptyBoard, createLevelPieces, getLevelDifficulty,
   getMaxRotatedBounds, getShapeBounds, normalizeBoard, placePiece, rotateCellsClockwise,
 } from '../lib/levels';
 import { MAX_LEVEL, markLevelCompleted } from '../lib/progress';
@@ -306,6 +306,11 @@ export default function PlayScreen() {
             </Pressable>
             <View style={styles.levelBadge}>
               <Text style={styles.levelText}>LEVEL {level}</Text>
+              {getLevelDifficulty(level) === 'hard' && (
+                <View style={styles.hardTag}>
+                  <Text style={styles.hardTagText}>HARD LEVEL!</Text>
+                </View>
+              )}
             </View>
             <Pressable onPress={() => router.replace('/')} style={({ pressed }) => [styles.iconBtn, { opacity: pressed ? 0.8 : 1 }]}>
               <Icon name="home" size={21} />
@@ -500,11 +505,18 @@ const styles = StyleSheet.create({
   },
   levelBadge: {
     backgroundColor: COLORS.frame[0], paddingVertical: 13, paddingHorizontal: 30, borderRadius: 16,
+    alignItems: 'center',
     boxShadow: 'inset 0px 2px 1px rgba(255,220,180,0.28), inset 0px -5px 4px rgba(0,0,0,0.35), 0px 6px 12px rgba(60,34,14,0.3)',
   },
   levelText: {
     fontFamily: FONTS.heading, fontSize: 20, color: COLORS.gold, letterSpacing: 2,
     textShadowColor: 'rgba(0,0,0,0.4)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1,
+  },
+  hardTag: {
+    marginTop: 6, paddingVertical: 3, paddingHorizontal: 12, borderRadius: 9, backgroundColor: COLORS.danger,
+  },
+  hardTagText: {
+    fontFamily: FONTS.heading, fontSize: 12, color: '#fff3e0', letterSpacing: 1.5,
   },
 
   boardArea: { flex: 1, alignItems: 'center', justifyContent: 'center' },
