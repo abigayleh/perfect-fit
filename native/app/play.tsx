@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, Vibration, View } from 'react-native';
 import { Gesture, GestureDetector, ScrollView as GHScrollView } from 'react-native-gesture-handler';
 import Animated, {
-  FadeIn, ZoomIn,
+  Extrapolation,
   interpolate, runOnJS, useAnimatedStyle, useSharedValue,
   withDelay, withSequence, withSpring, withTiming,
 } from 'react-native-reanimated';
@@ -58,8 +58,8 @@ export default function PlayScreen() {
     () => Math.floor((Math.min(screenWidth, 420) - BOARD_PADDING * 2 - 52) / BOARD_SIZE),
     [screenWidth],
   );
-  // Lift the dragged piece ~1 cell above the finger so the thumb doesn't cover it or the ghost
-  const LIFT = cellSize;
+  // Offset the floating piece down-right of its ghost so the ghost leads at the top-left
+  const DRAG_OFFSET = cellSize * 0.7;
 
   const initialPieces = useMemo(() => createLevelPieces(requestedLevel), [requestedLevel]);
 
@@ -84,6 +84,8 @@ export default function PlayScreen() {
   const boardScale = useSharedValue(1);
   const merge = useSharedValue(0);
   const shine = useSharedValue(0);
+  const overlay = useSharedValue(0);
+  const pop = useSharedValue(0);
   // Dragged piece px bounds — used to center it under the finger
   const dragW = useSharedValue(cellSize);
   const dragH = useSharedValue(cellSize);
@@ -105,7 +107,7 @@ export default function PlayScreen() {
   }
 
   // Landing cell where the piece will drop — centered on the finger, clamped onto the board.
-  // The floating piece is drawn one cell above this (see LIFT), so the ghost stays visible below it.
+  // The floating piece is drawn down-right of this (see DRAG_OFFSET), so the ghost leads at the top-left.
   function anchorFor(absX: number, absY: number, piece: Piece) {
     const layout = boardLayoutRef.current;
     if (!layout) return null;
@@ -206,6 +208,8 @@ export default function PlayScreen() {
     boardScale.value = 1;
     merge.value = 0;
     shine.value = 0;
+    overlay.value = 0;
+    pop.value = 0;
     dragPieceRef.current = null;
     placedPiecesRef.current.clear();
   }
@@ -224,8 +228,8 @@ export default function PlayScreen() {
 
   const dragOverlayStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateX: dragX.value - dragW.value / 2 },
-      { translateY: dragY.value - dragH.value / 2 - LIFT },
+      { translateX: dragX.value - dragW.value / 2 + DRAG_OFFSET },
+      { translateY: dragY.value - dragH.value / 2 + DRAG_OFFSET },
     ],
   }));
   const boardAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: boardScale.value }] }));
@@ -233,6 +237,12 @@ export default function PlayScreen() {
     opacity: merge.value,
     transform: [{ scale: 0.9 + 0.1 * merge.value }],
   }));
+  const overlayStyle = useAnimatedStyle(() => ({ opacity: overlay.value }));
+  // Staggered springy pop for the three stars, driven off one shared value (no entering animations)
+  const star0Style = useAnimatedStyle(() => ({ transform: [{ scale: interpolate(pop.value, [0, 0.4, 0.55], [0, 1.15, 1], Extrapolation.CLAMP) }] }));
+  const star1Style = useAnimatedStyle(() => ({ transform: [{ scale: interpolate(pop.value, [0.12, 0.52, 0.67], [0, 1.15, 1], Extrapolation.CLAMP) }] }));
+  const star2Style = useAnimatedStyle(() => ({ transform: [{ scale: interpolate(pop.value, [0.24, 0.64, 0.79], [0, 1.15, 1], Extrapolation.CLAMP) }] }));
+  const starStyles = [star0Style, star1Style, star2Style];
   const shineStyle = useAnimatedStyle(() => ({
     opacity: shine.value > 0 && shine.value < 1 ? 1 : 0,
     transform: [
@@ -251,7 +261,11 @@ export default function PlayScreen() {
     );
     merge.value = withSpring(1, { damping: 10, stiffness: 140 });
     shine.value = withDelay(200, withTiming(1, { duration: 800 }));
-    const t = setTimeout(() => setShowComplete(true), 1150);
+    const t = setTimeout(() => {
+      setShowComplete(true);
+      overlay.value = withTiming(1, { duration: 250 });
+      pop.value = withTiming(1, { duration: 750 });
+    }, 1150);
     return () => clearTimeout(t);
   }, [isComplete]);
 
@@ -343,7 +357,7 @@ export default function PlayScreen() {
                           left: (dropPos.col + c) * cellSize + TILE_INSET / 2,
                           top: (dropPos.row + r) * cellSize + TILE_INSET / 2,
                           width: tileInner, height: tileInner, borderRadius: 11,
-                          backgroundColor: dropPos.valid ? 'rgba(40,20,6,0.22)' : 'rgba(200,70,55,0.32)',
+                          backgroundColor: dropPos.valid ? 'rgba(86,176,92,0.42)' : 'rgba(200,70,55,0.32)',
                         }}
                       />
                     ))}
@@ -433,7 +447,7 @@ export default function PlayScreen() {
 
       {/* Level Complete */}
       {showComplete && (
-        <Animated.View entering={FadeIn.duration(250)} style={styles.completeOverlay}>
+        <Animated.View style={[styles.completeOverlay, overlayStyle]}>
           <LinearGradient colors={COLORS.boardBg} style={StyleSheet.absoluteFill} />
           <LinearGradient colors={['rgba(255,222,150,0.5)', 'transparent']} style={styles.glow} pointerEvents="none" />
           {CONFETTI.map((c, i) => (
@@ -444,7 +458,7 @@ export default function PlayScreen() {
               <View style={styles.starsRow}>
                 {[0, 1, 2].map(i => (
                   <View key={i} style={{ transform: [{ translateY: i === 1 ? -16 : 0 }] }}>
-                    <Animated.View entering={ZoomIn.delay(80 + i * 130).springify().damping(9)}>
+                    <Animated.View style={starStyles[i]}>
                       <Icon name="star" size={i === 1 ? 80 : 62} color={COLORS.star} />
                     </Animated.View>
                   </View>
