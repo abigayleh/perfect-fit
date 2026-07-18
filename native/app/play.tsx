@@ -240,6 +240,9 @@ export default function PlayScreen() {
     opacity: merge.value,
     transform: [{ scale: 0.9 + 0.1 * merge.value }],
   }));
+  // Fade the underlying tile grid out as the block fuses, so no grid can peek
+  // through once the merge is complete (kills the post-shine flicker).
+  const gridStyle = useAnimatedStyle(() => ({ opacity: 1 - merge.value }));
   const overlayStyle = useAnimatedStyle(() => ({ opacity: overlay.value }));
   // Staggered springy pop for the three stars, driven off one shared value (no entering animations)
   const star0Style = useAnimatedStyle(() => ({ transform: [{ scale: interpolate(pop.value, [0, 0.4, 0.55], [0, 1.15, 1], Extrapolation.CLAMP) }] }));
@@ -247,7 +250,7 @@ export default function PlayScreen() {
   const star2Style = useAnimatedStyle(() => ({ transform: [{ scale: interpolate(pop.value, [0.24, 0.64, 0.79], [0, 1.15, 1], Extrapolation.CLAMP) }] }));
   const starStyles = [star0Style, star1Style, star2Style];
   const shineStyle = useAnimatedStyle(() => ({
-    opacity: shine.value > 0 && shine.value < 1 ? 1 : 0,
+    opacity: interpolate(shine.value, [0, 0.12, 0.88, 1], [0, 1, 1, 0], Extrapolation.CLAMP),
     transform: [
       { translateX: interpolate(shine.value, [0, 1], [-boardPx * 1.3, boardPx * 1.3]) },
       { skewX: '-18deg' },
@@ -340,15 +343,17 @@ export default function PlayScreen() {
               <View style={styles.boardWell}>
                 <GestureDetector gesture={boardGesture}>
                   <View ref={boardViewRef} style={{ width: cellSize * boardSize }} onLayout={measureBoard}>
-                    {safeBoard.map((row, rIdx) => (
-                      <View key={rIdx} style={styles.boardRow}>
-                        {row.map((cell, cIdx) => (
-                          <View key={cIdx} style={{ width: cellSize, height: cellSize, alignItems: 'center', justifyContent: 'center' }}>
-                            <Tile size={tileInner} radius={11} variant={cell ? 'filled' : 'empty'} />
-                          </View>
-                        ))}
-                      </View>
-                    ))}
+                    <Animated.View style={gridStyle}>
+                      {safeBoard.map((row, rIdx) => (
+                        <View key={rIdx} style={styles.boardRow}>
+                          {row.map((cell, cIdx) => (
+                            <View key={cIdx} style={{ width: cellSize, height: cellSize, alignItems: 'center', justifyContent: 'center' }}>
+                              <Tile size={tileInner} radius={11} variant={cell ? 'filled' : 'empty'} />
+                            </View>
+                          ))}
+                        </View>
+                      ))}
+                    </Animated.View>
 
                     {/* Ghost: soft shadow of the piece on the target cells */}
                     {dragPiece && dropPos && dragPiece.shape.cells.map(([r, c]) => (
