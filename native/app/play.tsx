@@ -6,7 +6,7 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import { Gesture, GestureDetector, ScrollView as GHScrollView } from 'react-native-gesture-handler';
 import Animated, {
   Extrapolation,
-  interpolate, runOnJS, useAnimatedStyle, useSharedValue,
+  interpolate, measure, runOnJS, useAnimatedRef, useAnimatedStyle, useSharedValue,
   withDelay, withSequence, withSpring, withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -65,9 +65,9 @@ export default function PlayScreen() {
     () => Math.floor((Math.min(screenWidth, 420) - BOARD_PADDING * 2 - 52) / boardSize),
     [screenWidth, boardSize],
   );
-  // Lift the floating piece one cell straight up from the finger: aligned over the
-  // ghost, clear of the thumb, and never drifting off the board or into the tray.
-  const DRAG_LIFT = cellSize;
+  // The floating block sits directly on its landing cells (WYSIWYG) — no offset between the
+  // block and the green highlight. Small nudge up so the fingertip doesn't fully cover it.
+  const DRAG_LIFT = cellSize * 0.35;
 
   const [levelPieces, setLevelPieces] = useState<Piece[]>(initialPieces);
   const [board, setBoard] = useState<BoardCell[][]>(() => createEmptyBoard(getBoardSize(requestedLevel)));
@@ -86,17 +86,19 @@ export default function PlayScreen() {
 
   const dragX = useSharedValue(0);
   const dragY = useSharedValue(0);
+  // Board's window origin, captured once at drag start (it only moves on layout, not mid-drag).
+  const originX = useSharedValue(0);
+  const originY = useSharedValue(0);
   const boardScale = useSharedValue(1);
   const merge = useSharedValue(0);
   const shine = useSharedValue(0);
   const overlay = useSharedValue(0);
   const pop = useSharedValue(0);
-  // Dragged piece px bounds — used to center it under the finger
+  // Dragged piece px bounds — used to re-center it under the finger.
   const dragW = useSharedValue(cellSize);
   const dragH = useSharedValue(cellSize);
 
-  const boardViewRef = useRef<View>(null);
-  const boardLayoutRef = useRef<{ x: number; y: number } | null>(null);
+  const boardRef = useAnimatedRef<Animated.View>();
   const dragPieceRef = useRef<Piece | null>(null);
   const placedPiecesRef = useRef<Map<string, Piece>>(new Map());
   const boardStateRef = useRef(board);
@@ -107,28 +109,26 @@ export default function PlayScreen() {
   const isComplete = tray.length === 0 && !dragPiece;
   const safeBoard = useMemo(() => normalizeBoard(board), [board]);
 
-  function measureBoard() {
-    boardViewRef.current?.measureInWindow((x, y) => { boardLayoutRef.current = { x, y }; });
-  }
-
-  // Landing cell where the piece will drop — centered on the finger, clamped onto the board.
-  // The floating piece is drawn one cell above this (see DRAG_LIFT), so the ghost stays visible below it.
-  function anchorFor(absX: number, absY: number, piece: Piece) {
-    const layout = boardLayoutRef.current;
-    if (!layout) return null;
+  // Landing cell = where the VISIBLE floating piece is, snapped to the grid. Uses the exact
+  // same offsets the drag overlay renders with (center on finger, lifted by DRAG_LIFT), so the
+  // green highlight always sits directly under the block you're aiming with (WYSIWYG).
+  function anchorFor(fx: number, fy: number, piece: Piece) {
     const { width: W, height: H } = getShapeBounds(piece.shape);
-    const fx = absX - layout.x;
-    const fy = absY - layout.y;
+    const pieceLeft = fx - (W * cellSize) / 2;
+    const pieceTop = fy - (H * cellSize) / 2 - DRAG_LIFT;
+    // gate on the piece's center (not the raw finger) so top/bottom-row drops aren't rejected
+    const cx = fx;
+    const cy = fy - DRAG_LIFT;
     const boardPx = cellSize * boardSize;
-    if (fx < 0 || fy < 0 || fx > boardPx || fy > boardPx) return null;
-    const col = clamp(Math.round(fx / cellSize - W / 2), 0, boardSize - W);
-    const row = clamp(Math.round(fy / cellSize - H / 2), 0, boardSize - H);
-    return { row, col, layout };
+    if (cx < 0 || cy < 0 || cx > boardPx || cy > boardPx) return null;
+    const col = clamp(Math.round(pieceLeft / cellSize), 0, boardSize - W);
+    const row = clamp(Math.round(pieceTop / cellSize), 0, boardSize - H);
+    return { row, col };
   }
 
-  function computeDropPos(absX: number, absY: number) {
+  function computeDropPos(fx: number, fy: number) {
     const piece = dragPieceRef.current;
-    const a = piece ? anchorFor(absX, absY, piece) : null;
+    const a = piece ? anchorFor(fx, fy, piece) : null;
     const next = a && piece
       ? { row: a.row, col: a.col, valid: canPlacePiece(boardStateRef.current, piece, a.row, a.col) }
       : null;
@@ -141,7 +141,6 @@ export default function PlayScreen() {
   }
 
   function beginDrag(piece: Piece) {
-    measureBoard(); // refresh in case layout shifted since mount
     const { width: W, height: H } = getShapeBounds(piece.shape);
     dragW.value = W * cellSize;
     dragH.value = H * cellSize;
@@ -151,7 +150,7 @@ export default function PlayScreen() {
     setDropPos(null);
   }
 
-  function endDrag(absX: number, absY: number) {
+  function endDrag(fx: number, fy: number) {
     const piece = dragPieceRef.current;
     dragPieceRef.current = null;
     setDragPiece(null);
@@ -159,7 +158,7 @@ export default function PlayScreen() {
     setScrollEnabled(true);
     if (!piece) return;
 
-    const a = anchorFor(absX, absY, piece);
+    const a = anchorFor(fx, fy, piece);
     if (a && canPlacePiece(boardStateRef.current, piece, a.row, a.col)) {
       const next = placePiece(boardStateRef.current, piece, a.row, a.col);
       placedPiecesRef.current.set(piece.id, piece);
@@ -278,11 +277,9 @@ export default function PlayScreen() {
     return () => clearTimeout(t);
   }, [isComplete]);
 
-  function handleBoardDragStart(absX: number, absY: number) {
-    const layout = boardLayoutRef.current;
-    if (!layout) return;
-    const col = Math.floor((absX - layout.x) / cellSize);
-    const row = Math.floor((absY - layout.y) / cellSize);
+  function handleBoardDragStart(fx: number, fy: number) {
+    const col = Math.floor(fx / cellSize);
+    const row = Math.floor(fy / cellSize);
     if (row < 0 || col < 0 || row >= boardSize || col >= boardSize) return;
     const cell = boardStateRef.current[row]?.[col];
     if (!cell) return;
@@ -293,26 +290,34 @@ export default function PlayScreen() {
     .minDistance(4)
     .onStart(e => {
       dragX.value = e.absoluteX; dragY.value = e.absoluteY;
-      runOnJS(handleBoardDragStart)(e.absoluteX, e.absoluteY);
+      const m = measure(boardRef);
+      if (m) { originX.value = m.pageX; originY.value = m.pageY; }
+      runOnJS(handleBoardDragStart)(e.absoluteX - originX.value, e.absoluteY - originY.value);
     })
     .onUpdate(e => {
       dragX.value = e.absoluteX; dragY.value = e.absoluteY;
-      runOnJS(computeDropPos)(e.absoluteX, e.absoluteY);
+      runOnJS(computeDropPos)(e.absoluteX - originX.value, e.absoluteY - originY.value);
     })
-    .onEnd(e => { runOnJS(endDrag)(e.absoluteX, e.absoluteY); });
+    .onEnd(e => {
+      runOnJS(endDrag)(e.absoluteX - originX.value, e.absoluteY - originY.value);
+    });
 
   function makeTrayDragGesture(piece: Piece) {
     return Gesture.Pan()
       .minDistance(4)
       .onStart(e => {
         dragX.value = e.absoluteX; dragY.value = e.absoluteY;
+        const m = measure(boardRef);
+        if (m) { originX.value = m.pageX; originY.value = m.pageY; }
         runOnJS(beginDrag)(piece);
       })
       .onUpdate(e => {
         dragX.value = e.absoluteX; dragY.value = e.absoluteY;
-        runOnJS(computeDropPos)(e.absoluteX, e.absoluteY);
+        runOnJS(computeDropPos)(e.absoluteX - originX.value, e.absoluteY - originY.value);
       })
-      .onEnd(e => { runOnJS(endDrag)(e.absoluteX, e.absoluteY); });
+      .onEnd(e => {
+        runOnJS(endDrag)(e.absoluteX - originX.value, e.absoluteY - originY.value);
+      });
   }
 
   const tileInner = cellSize - TILE_INSET;
@@ -345,7 +350,7 @@ export default function PlayScreen() {
             <Animated.View style={[styles.boardFrame, boardAnimStyle]}>
               <View style={styles.boardWell}>
                 <GestureDetector gesture={boardGesture}>
-                  <View ref={boardViewRef} style={{ width: cellSize * boardSize }} onLayout={measureBoard}>
+                  <Animated.View ref={boardRef} style={{ width: cellSize * boardSize }}>
                     <Animated.View style={gridStyle}>
                       {safeBoard.map((row, rIdx) => (
                         <View key={rIdx} style={styles.boardRow}>
@@ -386,7 +391,7 @@ export default function PlayScreen() {
                         </Animated.View>
                       </Animated.View>
                     )}
-                  </View>
+                  </Animated.View>
                 </GestureDetector>
               </View>
             </Animated.View>
