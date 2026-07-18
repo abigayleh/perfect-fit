@@ -2,7 +2,7 @@ import Svg, { Circle, G, Line, Path, Rect } from 'react-native-svg';
 
 export type IconName =
   | 'gear' | 'play' | 'star' | 'lock' | 'home' | 'back' | 'chevron'
-  | 'arrow' | 'replay' | 'sound' | 'music' | 'vibrate' | 'question';
+  | 'arrow' | 'replay' | 'sound' | 'music' | 'vibrate' | 'question' | 'info';
 
 type Props = { name: IconName; size?: number; color?: string; strokeWidth?: number };
 
@@ -101,6 +101,14 @@ export default function Icon({ name, size = 22, color = '#f0d199', strokeWidth =
         <Svg width={size} height={size} viewBox="0 0 24 24">
           <Path d="M9.2 9a2.8 2.8 0 115.3 1.2c-.5 1-1.7 1.4-2.2 2.3-.2.4-.3.8-.3 1.5" stroke={color} strokeWidth={2.2} fill="none" strokeLinecap="round" />
           <Circle cx={12} cy={18} r={1.4} fill={color} />
+        </Svg>
+      );
+    case 'info':
+      return (
+        <Svg width={size} height={size} viewBox="0 0 24 24">
+          <Circle cx={12} cy={12} r={9.2} fill="none" stroke={color} strokeWidth={2} />
+          <Path d="M12 11v5.5" stroke={color} strokeWidth={2.2} fill="none" strokeLinecap="round" />
+          <Circle cx={12} cy={7.6} r={1.3} fill={color} />
         </Svg>
       );
   }

@@ -78,6 +78,12 @@ export default function SettingsScreen() {
               <Icon name="chevron" size={17} color="#b58a52" />
             </Pressable>
 
+            <Pressable style={styles.row} onPress={() => router.push('/credits')}>
+              <IconTile name="info" />
+              <Text style={styles.rowLabel}>Credits</Text>
+              <Icon name="chevron" size={17} color="#b58a52" />
+            </Pressable>
+
             <Pressable style={[styles.row, styles.rowLast]} onPress={confirmRestart}>
               <IconTile name="replay" danger />
               <Text style={[styles.rowLabel, { color: COLORS.danger }]}>Restart Progress</Text>

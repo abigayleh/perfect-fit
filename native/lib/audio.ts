@@ -12,7 +12,7 @@ export async function initAudio() {
   if (music) return;
   try {
     await setAudioModeAsync({ playsInSilentMode: true });
-    music = createAudioPlayer(require('../assets/audio/music.mp3'));
+    music = createAudioPlayer(require('../assets/audio/bgm.mp3'));
     music.loop = true;
     music.volume = 0.4;
     click = createAudioPlayer(require('../assets/audio/click.mp3'));
