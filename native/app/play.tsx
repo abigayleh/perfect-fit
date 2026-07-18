@@ -1,7 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, Vibration, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector, ScrollView as GHScrollView } from 'react-native-gesture-handler';
 import Animated, {
   Extrapolation,
@@ -18,6 +19,7 @@ import {
   getMaxRotatedBounds, getShapeBounds, normalizeBoard, placePiece, rotateCellsClockwise,
 } from '../lib/levels';
 import { MAX_LEVEL, markLevelCompleted } from '../lib/progress';
+import { playClick } from '../lib/audio';
 import { getSettings } from '../lib/settings';
 import { COLORS, FONTS, FRAME_SHADOW, INSET_SHADOW, TILE_SHADOW } from '../lib/theme';
 
@@ -163,7 +165,8 @@ export default function PlayScreen() {
       placedPiecesRef.current.set(piece.id, piece);
       setBoard(next);
       setMoves(m => m + 1);
-      if (vibrateRef.current) Vibration.vibrate(15);
+      playClick();
+      if (vibrateRef.current) void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setTray(prev => {
         const remaining = prev.filter(p => p.id !== piece.id);
         if (remaining.length === 0) void markLevelCompleted(levelRef.current);

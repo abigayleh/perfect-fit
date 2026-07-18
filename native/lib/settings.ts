@@ -1,11 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
+import { applyAudioSettings } from './audio';
 
 const STORAGE_KEY = 'perfect-fit-settings-v1';
 
 export type Settings = { sound: boolean; music: boolean; vibration: boolean };
 
-const DEFAULTS: Settings = { sound: true, music: false, vibration: true };
+const DEFAULTS: Settings = { sound: true, music: true, vibration: true };
 
 export async function getSettings(): Promise<Settings> {
   try {
@@ -31,6 +32,7 @@ export function useSettings() {
     setSettings(prev => {
       const next = { ...prev, [key]: !prev[key] };
       void saveSettings(next);
+      applyAudioSettings(next);
       return next;
     });
   };
