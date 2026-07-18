@@ -267,15 +267,23 @@ export default function PlayScreen() {
       withTiming(1.05, { duration: 180 }),
       withSpring(1.0, { damping: 11, stiffness: 180 }),
     );
-    merge.value = withSpring(1, { damping: 10, stiffness: 140 });
     shine.value = withDelay(200, withTiming(1, { duration: 800 }));
-    const t = setTimeout(() => {
-      setShowComplete(true);
-      overlay.value = withTiming(1, { duration: 250 });
-      pop.value = withTiming(1, { duration: 750 });
-    }, 1150);
+    const t = setTimeout(() => setShowComplete(true), 1150);
     return () => clearTimeout(t);
   }, [isComplete]);
+
+  // Start the animations only after their views have mounted, so the first
+  // painted frame reflects the true starting value instead of a snap.
+  useEffect(() => {
+    if (!merging) return;
+    merge.value = withSpring(1, { damping: 10, stiffness: 140 });
+  }, [merging]);
+
+  useEffect(() => {
+    if (!showComplete) return;
+    overlay.value = withTiming(1, { duration: 250 });
+    pop.value = withTiming(1, { duration: 750 });
+  }, [showComplete]);
 
   function handleBoardDragStart(fx: number, fy: number) {
     const col = Math.floor(fx / cellSize);
