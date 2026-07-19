@@ -47,6 +47,11 @@ Level tilings + difficulty live in `native/lib/level-presets.ts`; 26-100 are gen
 solver-verified by `native/scripts/build-presets.js` (seeded, idempotent — rerun to regenerate).
 `MAX_LEVEL` is in `native/lib/progress.ts`.
 
+Drag/drop hover+placement geometry is pure in `native/lib/drag-geometry.ts` (`computeAnchor`,
+`dragBlockTopLeft`, `cellsForAnchor`) and tested in `drag-geometry.test.ts` — `play.tsx`'s
+`anchorFor` and the drag overlay worklet must stay in lockstep with it. Change the math here, not
+inline, so the green preview / floating block / actual drop can't diverge.
+
 ## Codebase Exploration & Knowledge Sharing
 
 Before starting non-trivial work, especially in an unfamiliar part of the codebase, explore first:

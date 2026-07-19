@@ -18,6 +18,7 @@ import {
   canPlacePiece, createEmptyBoard, createLevelPieces, getBoardSize, getLevelDifficulty,
   getMaxRotatedBounds, getShapeBounds, normalizeBoard, placePiece, rotateCellsClockwise,
 } from '../lib/levels';
+import { computeAnchor } from '../lib/drag-geometry';
 import { MAX_LEVEL, markLevelCompleted } from '../lib/progress';
 import { playClick } from '../lib/audio';
 import { getSettings } from '../lib/settings';
@@ -33,8 +34,6 @@ function fmtTime(ms: number): string {
   const s = Math.floor(ms / 1000);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
-
-const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 // Scattered confetti dots on the Level Complete screen (static, per design)
 const CONFETTI = [
@@ -109,22 +108,11 @@ export default function PlayScreen() {
   const isComplete = tray.length === 0 && !dragPiece;
   const safeBoard = useMemo(() => normalizeBoard(board), [board]);
 
-  // Landing cell = where the VISIBLE floating piece is, snapped to the grid. Uses the exact
-  // same offsets the drag overlay renders with (center on finger, lifted by DRAG_LIFT), so the
-  // green highlight always sits directly under the block you're aiming with (WYSIWYG).
-  function anchorFor(fx: number, fy: number, piece: Piece) {
-    const { width: W, height: H } = getShapeBounds(piece.shape);
-    const pieceLeft = fx - (W * cellSize) / 2;
-    const pieceTop = fy - (H * cellSize) / 2 - DRAG_LIFT;
-    // gate on the piece's center (not the raw finger) so top/bottom-row drops aren't rejected
-    const cx = fx;
-    const cy = fy - DRAG_LIFT;
-    const boardPx = cellSize * boardSize;
-    if (cx < 0 || cy < 0 || cx > boardPx || cy > boardPx) return null;
-    const col = clamp(Math.round(pieceLeft / cellSize), 0, boardSize - W);
-    const row = clamp(Math.round(pieceTop / cellSize), 0, boardSize - H);
-    return { row, col };
-  }
+  // Landing cell = where the VISIBLE floating piece is, snapped to the grid. Delegates to the
+  // shared drag-geometry helper so the green highlight, the floating block, and the actual drop
+  // all derive from one calculation (see native/lib/drag-geometry.ts).
+  const anchorFor = (fx: number, fy: number, piece: Piece) =>
+    computeAnchor(fx, fy, piece, { cellSize, boardSize, dragLift: DRAG_LIFT });
 
   function computeDropPos(fx: number, fy: number) {
     const piece = dragPieceRef.current;
@@ -231,6 +219,8 @@ export default function PlayScreen() {
 
   const boardPx = cellSize * boardSize;
 
+  // Must mirror dragBlockTopLeft() in lib/drag-geometry.ts (dragW/dragH = W/H * cellSize),
+  // so the floating block and the green landing preview stay in lockstep.
   const dragOverlayStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: dragX.value - dragW.value / 2 },
