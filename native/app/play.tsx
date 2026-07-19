@@ -233,13 +233,15 @@ export default function PlayScreen() {
     ],
   }));
   const boardAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: boardScale.value }] }));
+  // Scale keeps the springy bounce, but opacity is clamped-interpolated so the spring's
+  // ring-down (it overshoots 1 then dips back under) can't oscillate the block's opacity.
   const mergeStyle = useAnimatedStyle(() => ({
-    opacity: merge.value,
+    opacity: interpolate(merge.value, [0, 0.5], [0, 1], Extrapolation.CLAMP),
     transform: [{ scale: 0.9 + 0.1 * merge.value }],
   }));
-  // Fade the underlying tile grid out as the block fuses, so no grid can peek
-  // through once the merge is complete (kills the post-shine flicker).
-  const gridStyle = useAnimatedStyle(() => ({ opacity: 1 - merge.value }));
+  // Fade the grid out fully by merge=0.6, before the spring rings around 1.0. A raw
+  // 1 - merge.value flickers the grid back to ~5% each time the spring undershoots 1.
+  const gridStyle = useAnimatedStyle(() => ({ opacity: interpolate(merge.value, [0, 0.6], [1, 0], Extrapolation.CLAMP) }));
   const overlayStyle = useAnimatedStyle(() => ({ opacity: overlay.value }));
   // Staggered springy pop for the three stars, driven off one shared value (no entering animations)
   const star0Style = useAnimatedStyle(() => ({ transform: [{ scale: interpolate(pop.value, [0, 0.4, 0.55], [0, 1.15, 1], Extrapolation.CLAMP) }] }));
