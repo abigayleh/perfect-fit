@@ -85,7 +85,8 @@ export default function PlayScreen() {
 
   const dragX = useSharedValue(0);
   const dragY = useSharedValue(0);
-  // Board's window origin, captured once at drag start (it only moves on layout, not mid-drag).
+  // Board's window origin, re-measured every gesture event (see syncOrigin) so screen→board
+  // conversion never drifts if the board shifts or the first measure() comes back null.
   const originX = useSharedValue(0);
   const originY = useSharedValue(0);
   const boardScale = useSharedValue(1);
@@ -284,19 +285,30 @@ export default function PlayScreen() {
     pickupFromBoard(cell.pieceId);
   }
 
+  // Re-measure the board on every event so the screen→board conversion can never use a stale
+  // origin: measure() can return null on the first frame, and the board can shift on layout.
+  // Re-measuring each frame recovers on the next, and computeAnchor rejects off-board coords, so
+  // a rare null never places a piece in the wrong cell.
+  const syncOrigin = () => {
+    'worklet';
+    const m = measure(boardRef);
+    if (m) { originX.value = m.pageX; originY.value = m.pageY; }
+  };
+
   const boardGesture = Gesture.Pan()
     .minDistance(4)
     .onStart(e => {
       dragX.value = e.absoluteX; dragY.value = e.absoluteY;
-      const m = measure(boardRef);
-      if (m) { originX.value = m.pageX; originY.value = m.pageY; }
+      syncOrigin();
       runOnJS(handleBoardDragStart)(e.absoluteX - originX.value, e.absoluteY - originY.value);
     })
     .onUpdate(e => {
       dragX.value = e.absoluteX; dragY.value = e.absoluteY;
+      syncOrigin();
       runOnJS(computeDropPos)(e.absoluteX - originX.value, e.absoluteY - originY.value);
     })
     .onEnd(e => {
+      syncOrigin();
       runOnJS(endDrag)(e.absoluteX - originX.value, e.absoluteY - originY.value);
     });
 
@@ -305,15 +317,16 @@ export default function PlayScreen() {
       .minDistance(4)
       .onStart(e => {
         dragX.value = e.absoluteX; dragY.value = e.absoluteY;
-        const m = measure(boardRef);
-        if (m) { originX.value = m.pageX; originY.value = m.pageY; }
+        syncOrigin();
         runOnJS(beginDrag)(piece);
       })
       .onUpdate(e => {
         dragX.value = e.absoluteX; dragY.value = e.absoluteY;
+        syncOrigin();
         runOnJS(computeDropPos)(e.absoluteX - originX.value, e.absoluteY - originY.value);
       })
       .onEnd(e => {
+        syncOrigin();
         runOnJS(endDrag)(e.absoluteX - originX.value, e.absoluteY - originY.value);
       });
   }
