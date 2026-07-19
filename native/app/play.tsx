@@ -220,9 +220,13 @@ export default function PlayScreen() {
 
   const boardPx = cellSize * boardSize;
 
-  // Must mirror dragBlockTopLeft() in lib/drag-geometry.ts (dragW/dragH = W/H * cellSize),
-  // so the floating block and the green landing preview stay in lockstep.
+  // Mirrors dragBlockTopLeft() in lib/drag-geometry.ts (dragW/dragH = W/H * cellSize) so the
+  // block stays in lockstep with the green preview. The explicit width/height is required: a
+  // zero-size transformed view mis-places its absolutely-positioned tile children (error
+  // compounds), so the block drifts off the finger. Sizing it pins the tiles to the origin.
   const dragOverlayStyle = useAnimatedStyle(() => ({
+    width: dragW.value,
+    height: dragH.value,
     transform: [
       { translateX: dragX.value - dragW.value / 2 },
       { translateY: dragY.value - dragH.value / 2 - DRAG_LIFT },
