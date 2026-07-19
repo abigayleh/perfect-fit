@@ -313,8 +313,12 @@ export default function PlayScreen() {
     });
 
   function makeTrayDragGesture(piece: Piece) {
+    // Blocks are dragged UP onto the board (vertical intent); the tray scrolls horizontally.
+    // Activate only on vertical movement and bail on horizontal, so a sideways swipe scrolls
+    // the tray instead of yanking a block out.
     return Gesture.Pan()
-      .minDistance(4)
+      .activeOffsetY([-12, 12])
+      .failOffsetX([-12, 12])
       .onStart(e => {
         dragX.value = e.absoluteX; dragY.value = e.absoluteY;
         syncOrigin();
