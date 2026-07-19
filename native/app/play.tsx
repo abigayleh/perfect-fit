@@ -406,7 +406,8 @@ export default function PlayScreen() {
                         <View key={rIdx} style={styles.boardRow}>
                           {row.map((cell, cIdx) => (
                             <View key={cIdx} style={{ width: cellSize, height: cellSize, alignItems: 'center', justifyContent: 'center' }}>
-                              <Tile size={tileInner} radius={11} variant={isObstacle(cell) ? 'obstacle' : cell ? 'filled' : 'empty'} />
+                              {/* Obstacles are pre-placed wood (truthy cell) so they blend into the final merge. */}
+                              <Tile size={tileInner} radius={11} variant={cell ? 'filled' : 'empty'} />
                             </View>
                           ))}
                         </View>

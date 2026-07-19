@@ -5,15 +5,14 @@ import { COLORS, TILE_SHADOW, WELL_SHADOW } from '../lib/theme';
 type Props = {
   size?: number;
   radius?: number;
-  variant?: 'filled' | 'empty' | 'obstacle';
+  variant?: 'filled' | 'empty';
   style?: StyleProp<ViewStyle>;
 };
 
 const GRAD_START = { x: 0.12, y: 0 };
 const GRAD_END = { x: 0.88, y: 1 };
 
-// Uniform wood tile. `filled` = embossed block, `empty` = recessed well,
-// `obstacle` = a permanently blocked dark plug.
+// Uniform wood tile. `filled` = embossed block, `empty` = recessed well.
 export default function Tile({ size, radius = 13, variant = 'filled', style }: Props) {
   const box: ViewStyle = {
     width: size,
@@ -22,9 +21,6 @@ export default function Tile({ size, radius = 13, variant = 'filled', style }: P
   };
   if (variant === 'empty') {
     return <View style={[box, { backgroundColor: COLORS.empty, boxShadow: WELL_SHADOW }, style]} />;
-  }
-  if (variant === 'obstacle') {
-    return <View style={[box, { backgroundColor: COLORS.frame[1], boxShadow: WELL_SHADOW }, style]} />;
   }
   return (
     <LinearGradient
