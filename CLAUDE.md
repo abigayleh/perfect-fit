@@ -40,12 +40,18 @@ Do not write code until this process is complete.
 ## Testing
 
 The Expo app lives in `native/`. Run `cd native && npm test` (jest-expo, node env).
-The suite in `native/lib/__tests__/` backtrack-solves every level from the real
-`createLevelPieces` data — run it before any release to catch an unsolvable level.
-100 levels: 1-25 are 4x4, 26-75 5x5, 76-100 6x6 (see `getBoardSize` in `native/lib/levels.ts`).
-Level tilings + difficulty live in `native/lib/level-presets.ts`; 26-100 are generated and
-solver-verified by `native/scripts/build-presets.js` (seeded, idempotent — rerun to regenerate).
-`MAX_LEVEL` is in `native/lib/progress.ts`.
+The suite in `native/lib/__tests__/` solver-verifies every level from the real
+`getLevelSpec`/`createLevelPieces` data — a subset of each level's pieces (honoring
+rotation) must exactly cover all free (non-obstacle) cells. Run it before any release.
+100 levels: 4x4 = 1-7, 5x5 = 8-39, 6x6 = 40-75, 7x7 = 76-100 (see `getBoardSize`).
+Levels are `LevelSpec`s in `native/lib/level-presets.ts` (`LEVEL_SPECS`): `pieces` may
+include **decoys** (more than needed — win is board-full, not tray-empty), `obstacles`
+are pre-filled blocked cells, `moveLimit` fails the level when exceeded, `parMoves` is
+the 3-star threshold. Mechanics layer in over the run: rotation → obstacles → decoys →
+frequent move limits (from L32). The whole catalog is generated + solver-verified by
+`native/scripts/build-presets.js` (seeded, idempotent — rerun to regenerate); tune the
+schedule in its `classify`/`buildLevel`. Par-based stars are persisted per-level in
+`native/lib/progress.ts` (`recordStars`/`getStars`); `MAX_LEVEL` is there too.
 
 Drag/drop hover+placement geometry is pure in `native/lib/drag-geometry.ts` (`computeAnchor`,
 `dragBlockTopLeft`, `cellsForAnchor`) and tested in `drag-geometry.test.ts` — `play.tsx`'s

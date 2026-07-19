@@ -1,10 +1,11 @@
-import { LEVEL_DIFFICULTY, LEVEL_SPECS, PRESET_LEVELS } from './level-presets';
+import { LEVEL_DIFFICULTY, LEVEL_SPECS } from './level-presets';
 
-// Board grows with progression: 4x4 (1-25), 5x5 (26-75), 6x6 (76-100).
+// Board grows with progression: 4x4 (1-7), 5x5 (8-39), 6x6 (40-75), 7x7 (76-100).
 export function getBoardSize(level: number): number {
-  if (level <= 25) return 4;
-  if (level <= 75) return 5;
-  return 6;
+  if (level <= 7) return 4;
+  if (level <= 39) return 5;
+  if (level <= 75) return 6;
+  return 7;
 }
 
 export const PIECE_COLORS = [
@@ -78,13 +79,10 @@ export function rotateCells(cells: ShapeCells, turns: number): ShapeCells {
   return next;
 }
 
-// Prefer a hand-authored/generated LevelSpec; otherwise wrap the legacy
-// exact-cover preset (no obstacles/decoys, par = piece count).
+// Every level is defined in the generated LEVEL_SPECS catalog; fall back to
+// level 1 only as a defensive guard against an out-of-range request.
 export function getLevelSpec(level: number): LevelSpec {
-  const spec = LEVEL_SPECS[level];
-  if (spec) return spec;
-  const presets = PRESET_LEVELS[level] ?? PRESET_LEVELS[1];
-  return { pieces: presets, parMoves: presets.length };
+  return LEVEL_SPECS[level] ?? LEVEL_SPECS[1];
 }
 
 export function createLevelPieces(level: number): Piece[] {
