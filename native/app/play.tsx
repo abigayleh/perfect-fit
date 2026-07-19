@@ -14,12 +14,13 @@ import Icon from '../components/Icon';
 import Tile from '../components/Tile';
 import WoodButton from '../components/WoodButton';
 import {
-  BoardCell, Piece,
-  canPlacePiece, createEmptyBoard, createLevelPieces, getBoardSize, getLevelDifficulty,
-  getMaxRotatedBounds, getShapeBounds, normalizeBoard, placePiece, rotateCellsClockwise,
+  BoardCell, Piece, ShapeCells,
+  canPlacePiece, createBoard, createLevelPieces, getBoardSize, getLevelDifficulty, getLevelSpec,
+  getMaxRotatedBounds, getShapeBounds, isBoardFull, isObstacle, normalizeBoard, placePiece,
+  rotateCellsClockwise, starsFor,
 } from '../lib/levels';
 import { computeAnchor } from '../lib/drag-geometry';
-import { MAX_LEVEL, markLevelCompleted } from '../lib/progress';
+import { MAX_LEVEL, markLevelCompleted, recordStars } from '../lib/progress';
 import { playClick } from '../lib/audio';
 import { getSettings } from '../lib/settings';
 import { COLORS, FONTS, FRAME_SHADOW, INSET_SHADOW, TILE_SHADOW } from '../lib/theme';
@@ -59,6 +60,7 @@ export default function PlayScreen() {
 
   const [level, setLevel] = useState(requestedLevel);
   const boardSize = getBoardSize(level);
+  const { obstacles, moveLimit, parMoves } = getLevelSpec(level);
 
   const cellSize = useMemo(
     () => Math.floor((Math.min(screenWidth, 420) - BOARD_PADDING * 2 - 52) / boardSize),
@@ -69,7 +71,9 @@ export default function PlayScreen() {
   const DRAG_LIFT = cellSize * 0.35;
 
   const [levelPieces, setLevelPieces] = useState<Piece[]>(initialPieces);
-  const [board, setBoard] = useState<BoardCell[][]>(() => createEmptyBoard(getBoardSize(requestedLevel)));
+  const [board, setBoard] = useState<BoardCell[][]>(
+    () => createBoard(getBoardSize(requestedLevel), getLevelSpec(requestedLevel).obstacles),
+  );
   const [tray, setTray] = useState<Piece[]>(initialPieces);
   const [dragPiece, setDragPiece] = useState<Piece | null>(null);
   const [dropPos, setDropPos] = useState<{ row: number; col: number; valid: boolean } | null>(null);
@@ -78,7 +82,10 @@ export default function PlayScreen() {
   const [merging, setMerging] = useState(false);
   const [moves, setMoves] = useState(0);
   const [elapsed, setElapsed] = useState(0);
+  const [failed, setFailed] = useState(false);
+  const [earnedStars, setEarnedStars] = useState(3);
 
+  const movesRef = useRef(0);
   const startRef = useRef(Date.now());
   const vibrateRef = useRef(true);
   useEffect(() => { getSettings().then(s => { vibrateRef.current = s.vibration; }); }, []);
@@ -93,6 +100,7 @@ export default function PlayScreen() {
   const merge = useSharedValue(0);
   const shine = useSharedValue(0);
   const overlay = useSharedValue(0);
+  const failAnim = useSharedValue(0);
   const pop = useSharedValue(0);
   // Dragged piece px bounds — used to re-center it under the finger.
   const dragW = useSharedValue(cellSize);
@@ -106,7 +114,7 @@ export default function PlayScreen() {
   const levelRef = useRef(level);
   levelRef.current = level;
 
-  const isComplete = tray.length === 0 && !dragPiece;
+  const isComplete = isBoardFull(board) && !dragPiece;
   const safeBoard = useMemo(() => normalizeBoard(board), [board]);
 
   // Landing cell = where the VISIBLE floating piece is, snapped to the grid. Delegates to the
@@ -152,14 +160,15 @@ export default function PlayScreen() {
       const next = placePiece(boardStateRef.current, piece, a.row, a.col);
       placedPiecesRef.current.set(piece.id, piece);
       setBoard(next);
-      setMoves(m => m + 1);
+      const nextMoves = movesRef.current + 1;
+      movesRef.current = nextMoves;
+      setMoves(nextMoves);
       playClick();
       if (vibrateRef.current) void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      setTray(prev => {
-        const remaining = prev.filter(p => p.id !== piece.id);
-        if (remaining.length === 0) void markLevelCompleted(levelRef.current);
-        return remaining;
-      });
+      // Leftover decoy pieces stay in the tray; completion is board-full (see isComplete).
+      setTray(prev => prev.filter(p => p.id !== piece.id));
+      // Fail only if the budget is spent AND the board isn't finished by this placement.
+      if (moveLimit && nextMoves >= moveLimit && !isBoardFull(next)) setFailed(true);
     }
   }
 
@@ -168,7 +177,7 @@ export default function PlayScreen() {
     if (!piece) return;
     placedPiecesRef.current.delete(pieceId);
     const newBoard = boardStateRef.current.map(row =>
-      row.map(cell => (cell?.pieceId === pieceId ? null : cell)),
+      row.map(cell => (cell && !isObstacle(cell) && cell.pieceId === pieceId ? null : cell)),
     );
     boardStateRef.current = newBoard;
     setBoard(newBoard);
@@ -188,8 +197,8 @@ export default function PlayScreen() {
     );
   }
 
-  function resetPlayState(pieces: Piece[], size: number) {
-    setBoard(createEmptyBoard(size));
+  function resetPlayState(pieces: Piece[], size: number, obs?: ShapeCells) {
+    setBoard(createBoard(size, obs));
     setTray(pieces);
     setDragPiece(null);
     setDropPos(null);
@@ -197,12 +206,16 @@ export default function PlayScreen() {
     setShowComplete(false);
     setMerging(false);
     setMoves(0);
+    movesRef.current = 0;
     setElapsed(0);
+    setFailed(false);
+    setEarnedStars(3);
     startRef.current = Date.now();
     boardScale.value = 1;
     merge.value = 0;
     shine.value = 0;
     overlay.value = 0;
+    failAnim.value = 0;
     pop.value = 0;
     dragPieceRef.current = null;
     placedPiecesRef.current.clear();
@@ -213,10 +226,10 @@ export default function PlayScreen() {
     const pieces = createLevelPieces(clamped);
     setLevel(clamped);
     setLevelPieces(pieces);
-    resetPlayState(pieces, getBoardSize(clamped));
+    resetPlayState(pieces, getBoardSize(clamped), getLevelSpec(clamped).obstacles);
   }
 
-  function restartGame() { resetPlayState(levelPieces, boardSize); }
+  function restartGame() { resetPlayState(levelPieces, boardSize, obstacles); }
 
   const boardPx = cellSize * boardSize;
 
@@ -243,6 +256,7 @@ export default function PlayScreen() {
   // 1 - merge.value flickers the grid back to ~5% each time the spring undershoots 1.
   const gridStyle = useAnimatedStyle(() => ({ opacity: interpolate(merge.value, [0, 0.6], [1, 0], Extrapolation.CLAMP) }));
   const overlayStyle = useAnimatedStyle(() => ({ opacity: overlay.value }));
+  const failStyle = useAnimatedStyle(() => ({ opacity: failAnim.value }));
   // Staggered springy pop for the three stars, driven off one shared value (no entering animations)
   const star0Style = useAnimatedStyle(() => ({ transform: [{ scale: interpolate(pop.value, [0, 0.4, 0.55], [0, 1.15, 1], Extrapolation.CLAMP) }] }));
   const star1Style = useAnimatedStyle(() => ({ transform: [{ scale: interpolate(pop.value, [0.12, 0.52, 0.67], [0, 1.15, 1], Extrapolation.CLAMP) }] }));
@@ -259,6 +273,10 @@ export default function PlayScreen() {
   useEffect(() => {
     if (!isComplete) return;
     setElapsed(Date.now() - startRef.current);
+    const stars = starsFor(movesRef.current, parMoves);
+    setEarnedStars(stars);
+    void markLevelCompleted(levelRef.current);
+    void recordStars(levelRef.current, stars);
     setMerging(true);
     boardScale.value = withSequence(
       withTiming(1.05, { duration: 180 }),
@@ -282,12 +300,18 @@ export default function PlayScreen() {
     pop.value = withTiming(1, { duration: 750 });
   }, [showComplete]);
 
+  useEffect(() => {
+    if (!failed) return;
+    failAnim.value = withTiming(1, { duration: 250 });
+    if (vibrateRef.current) void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+  }, [failed]);
+
   function handleBoardDragStart(fx: number, fy: number) {
     const col = Math.floor(fx / cellSize);
     const row = Math.floor(fy / cellSize);
     if (row < 0 || col < 0 || row >= boardSize || col >= boardSize) return;
     const cell = boardStateRef.current[row]?.[col];
-    if (!cell) return;
+    if (!cell || isObstacle(cell)) return;
     pickupFromBoard(cell.pieceId);
   }
 
@@ -360,6 +384,11 @@ export default function PlayScreen() {
                   <Text style={styles.hardTagText}>HARD LEVEL!</Text>
                 </View>
               )}
+              {moveLimit != null && (
+                <View style={[styles.hardTag, styles.movesTag]}>
+                  <Text style={styles.hardTagText}>{Math.max(0, moveLimit - moves)} MOVES LEFT</Text>
+                </View>
+              )}
             </View>
             <Pressable onPress={() => router.replace('/')} style={({ pressed }) => [styles.iconBtn, { opacity: pressed ? 0.8 : 1 }]}>
               <Icon name="home" size={21} />
@@ -377,7 +406,7 @@ export default function PlayScreen() {
                         <View key={rIdx} style={styles.boardRow}>
                           {row.map((cell, cIdx) => (
                             <View key={cIdx} style={{ width: cellSize, height: cellSize, alignItems: 'center', justifyContent: 'center' }}>
-                              <Tile size={tileInner} radius={11} variant={cell ? 'filled' : 'empty'} />
+                              <Tile size={tileInner} radius={11} variant={isObstacle(cell) ? 'obstacle' : cell ? 'filled' : 'empty'} />
                             </View>
                           ))}
                         </View>
@@ -496,7 +525,7 @@ export default function PlayScreen() {
                 {[0, 1, 2].map(i => (
                   <View key={i} style={{ transform: [{ translateY: i === 1 ? -16 : 0 }] }}>
                     <Animated.View style={starStyles[i]}>
-                      <Icon name="star" size={i === 1 ? 80 : 62} color={COLORS.star} />
+                      <Icon name="star" size={i === 1 ? 80 : 62} color={i < earnedStars ? COLORS.star : 'rgba(90,54,22,0.2)'} />
                     </Animated.View>
                   </View>
                 ))}
@@ -535,6 +564,31 @@ export default function PlayScreen() {
           </SafeAreaView>
         </Animated.View>
       )}
+
+      {/* Out of Moves */}
+      {failed && (
+        <Animated.View style={[styles.completeOverlay, failStyle]}>
+          <LinearGradient colors={COLORS.boardBg} style={StyleSheet.absoluteFill} />
+          <SafeAreaView style={styles.completeSafe}>
+            <View style={styles.completeCenter}>
+              <Icon name="replay" size={72} color={COLORS.danger} />
+              <View style={{ alignItems: 'center' }}>
+                <Text style={styles.perfect}>OUT OF MOVES</Text>
+                <Text style={styles.completeSub}>LEVEL {level}</Text>
+              </View>
+            </View>
+            <View style={styles.completeButtons}>
+              <WoodButton
+                label="TRY AGAIN"
+                onPress={restartGame}
+                fontSize={24}
+                icon={<Icon name="replay" size={20} color="#fff5e6" />}
+              />
+              <WoodButton label="HOME" variant="secondary" onPress={() => router.replace('/')} height={58} fontSize={18} icon={<Icon name="home" size={17} color={COLORS.gold} />} />
+            </View>
+          </SafeAreaView>
+        </Animated.View>
+      )}
     </LinearGradient>
   );
 }
@@ -566,6 +620,7 @@ const styles = StyleSheet.create({
   hardTag: {
     marginTop: 6, paddingVertical: 3, paddingHorizontal: 12, borderRadius: 9, backgroundColor: COLORS.danger,
   },
+  movesTag: { backgroundColor: COLORS.frame[1] },
   hardTagText: {
     fontFamily: FONTS.heading, fontSize: 12, color: '#fff3e0', letterSpacing: 1.5,
   },

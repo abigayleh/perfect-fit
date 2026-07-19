@@ -1,9 +1,11 @@
-// Guards the level catalog: every level must have a real perfect tiling of its
-// board (4x4, 5x5, or 6x6 depending on level). Reads the actual level data via
-// createLevelPieces, so a broken or unsolvable level added later fails here.
+// Guards the level catalog: every level must be fillable — a subset of its
+// pieces (honoring rotation) exactly covers all free (non-obstacle) cells.
+// Reads the real level data via getLevelSpec/createLevelPieces, so a broken or
+// unsolvable level added later fails here. Levels may now carry obstacles and
+// decoy pieces, so this is subset-cover, not strict exact-cover of all pieces.
 import {
   Piece, ShapeCells,
-  createLevelPieces, getBoardSize, getLevelDifficulty, normalizeCells, rotateCellsClockwise,
+  createLevelPieces, getBoardSize, getLevelSpec, normalizeCells, rotateCellsClockwise,
 } from '../levels';
 import { MAX_LEVEL } from '../progress';
 
@@ -23,10 +25,12 @@ function orientations(piece: Piece): ShapeCells[] {
   return out;
 }
 
-// Backtracking exact-cover solver for an N x N board. Always fills the top-left-most
-// empty cell, which bounds the search and guarantees a definitive yes/no.
-function isSolvable(pieces: Piece[], size: number): boolean {
+// Backtracking cover solver for an N x N board. Obstacle cells start occupied;
+// pieces may be left unused (decoys). Always fills the top-left-most free cell,
+// which bounds the search and guarantees a definitive yes/no.
+function isSolvable(pieces: Piece[], size: number, obstacles: ShapeCells = []): boolean {
   const occ = Array.from({ length: size }, () => Array<boolean>(size).fill(false));
+  for (const [r, c] of obstacles) occ[r][c] = true;
   const oris = pieces.map(orientations);
   const used = Array<boolean>(pieces.length).fill(false);
 
@@ -42,7 +46,7 @@ function isSolvable(pieces: Piece[], size: number): boolean {
     for (let i = 0; i < pieces.length; i++) {
       if (used[i]) continue;
       for (const shape of oris[i]) {
-        // Anchor the piece so one of its cells lands on the target empty cell.
+        // Anchor the piece so one of its cells lands on the target free cell.
         for (const [pr, pc] of shape) {
           const ar = er - pr;
           const ac = ec - pc;
@@ -66,17 +70,22 @@ function isSolvable(pieces: Piece[], size: number): boolean {
 
 const levels = Array.from({ length: MAX_LEVEL }, (_, i) => i + 1);
 
-describe('every level fills its board exactly', () => {
-  test.each(levels)('level %i covers every cell', (lvl) => {
-    const size = getBoardSize(lvl);
-    const total = createLevelPieces(lvl).reduce((s, p) => s + p.shape.cells.length, 0);
-    expect(total).toBe(size * size);
+describe('every level can fill its free cells', () => {
+  test.each(levels)('level %i is solvable', (lvl) => {
+    const spec = getLevelSpec(lvl);
+    expect(isSolvable(createLevelPieces(lvl), getBoardSize(lvl), spec.obstacles ?? [])).toBe(true);
   });
 });
 
-describe('every level has a perfect tiling', () => {
-  test.each(levels)('level %i is solvable', (lvl) => {
-    expect(isSolvable(createLevelPieces(lvl), getBoardSize(lvl))).toBe(true);
+// parMoves must be reachable: you can never fill the board in fewer placements
+// than there are solution pieces, so par should cover the free area with the
+// smallest sensible pieces. Guard the cheap invariant that par is positive and
+// no larger than the piece count offered.
+describe('parMoves is sane', () => {
+  test.each(levels)('level %i par is within [1, pieceCount]', (lvl) => {
+    const spec = getLevelSpec(lvl);
+    expect(spec.parMoves).toBeGreaterThan(0);
+    expect(spec.parMoves).toBeLessThanOrEqual(spec.pieces.length);
   });
 });
 
@@ -91,12 +100,5 @@ describe('solver rejects impossible tilings', () => {
     const bar = piece([[0, 0], [0, 1], [0, 2], [0, 3]]);
     const sq = () => piece([[0, 0], [0, 1], [1, 0], [1, 1]]);
     expect(isSolvable([bar, sq(), sq(), sq()], 4)).toBe(false);
-  });
-});
-
-describe('difficulty invariant', () => {
-  test.each(levels)('level %i: rotatable pieces only on hard levels', (lvl) => {
-    const hasRotatable = createLevelPieces(lvl).some((p) => p.rotatable);
-    if (getLevelDifficulty(lvl) !== 'hard') expect(hasRotatable).toBe(false);
   });
 });

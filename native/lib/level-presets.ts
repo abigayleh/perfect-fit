@@ -1,4 +1,77 @@
-import type { Difficulty, LevelPiecePreset } from './levels';
+import type { Difficulty, LevelPiecePreset, LevelSpec } from './levels';
+
+// PHASE 1 mechanics playground — hand-authored 4x4 levels that override
+// PRESET_LEVELS for these numbers, each isolating one new mechanic so the feel
+// can be tested before Phase 2 regenerates the full 1-100 catalog into specs.
+//   1 plain · 2 rotation · 3 obstacles · 4 decoy · 5 move limit · 6 all combined
+export const LEVEL_SPECS: Record<number, LevelSpec> = {
+  // 1 — baseline: four squares, exact cover, no mechanics.
+  1: {
+    parMoves: 4,
+    pieces: [
+      { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+      { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+      { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+      { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    ],
+  },
+  // 2 — rotation: four L-tetrominoes; two arrive pre-rotated and must be turned.
+  2: {
+    parMoves: 4,
+    pieces: [
+      { cells: [[0, 0], [0, 1], [0, 2], [1, 0]], rotatable: true, initialRotation: 2 },
+      { cells: [[0, 2], [1, 0], [1, 1], [1, 2]] },
+      { cells: [[0, 0], [0, 1], [0, 2], [1, 0]], rotatable: true, initialRotation: 1 },
+      { cells: [[0, 2], [1, 0], [1, 1], [1, 2]] },
+    ],
+  },
+  // 3 — obstacles: two blocked corners; tile the remaining 14 cells.
+  3: {
+    parMoves: 4,
+    obstacles: [[0, 0], [0, 3]],
+    pieces: [
+      { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+      { cells: [[0, 0], [1, 0], [2, 0], [2, 1]] },
+      { cells: [[0, 1], [1, 1], [2, 0], [2, 1]] },
+      { cells: [[0, 0], [0, 1]] },
+    ],
+  },
+  // 4 — decoy: four squares fill the board; the T-piece is a spare.
+  4: {
+    parMoves: 4,
+    pieces: [
+      { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+      { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+      { cells: [[0, 0], [0, 1], [0, 2], [1, 1]] },
+      { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+      { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    ],
+  },
+  // 5 — move limit: four L-tetrominoes, budget of 5 (one fumble allowed).
+  5: {
+    parMoves: 4,
+    moveLimit: 5,
+    pieces: [
+      { cells: [[0, 0], [0, 1], [0, 2], [1, 0]] },
+      { cells: [[0, 2], [1, 0], [1, 1], [1, 2]] },
+      { cells: [[0, 0], [0, 1], [0, 2], [1, 0]] },
+      { cells: [[0, 2], [1, 0], [1, 1], [1, 2]] },
+    ],
+  },
+  // 6 — everything: obstacles + a rotated piece + a decoy + a move budget.
+  6: {
+    parMoves: 4,
+    moveLimit: 6,
+    obstacles: [[0, 0], [0, 3]],
+    pieces: [
+      { cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+      { cells: [[0, 0], [1, 0], [2, 0], [2, 1]], rotatable: true, initialRotation: 1 },
+      { cells: [[0, 1], [1, 1], [2, 0], [2, 1]] },
+      { cells: [[0, 0], [0, 1]] },
+      { cells: [[0, 0], [0, 1], [0, 2], [1, 1]] },
+    ],
+  },
+};
 
 // Level catalog. 1-25 = 4x4, 26-75 = 5x5, 76-100 = 6x6 (see getBoardSize).
 // Each level is a perfect exact-cover tiling of its board; only hard levels have

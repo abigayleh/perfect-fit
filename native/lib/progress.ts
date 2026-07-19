@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export const MAX_LEVEL = 100;
 
 const STORAGE_KEY = 'perfect-fit-progress-v1';
+const STARS_KEY = 'perfect-fit-stars-v1';
 
 type ProgressState = {
   highestCompletedLevel: number;
@@ -55,4 +56,26 @@ export async function markLevelCompleted(level: number): Promise<void> {
     STORAGE_KEY,
     JSON.stringify({ highestCompletedLevel: clamped }),
   );
+}
+
+// Per-level best star rating (1-3), keyed by level number.
+async function readStars(): Promise<Record<number, number>> {
+  try {
+    const raw = await AsyncStorage.getItem(STARS_KEY);
+    return raw ? (JSON.parse(raw) as Record<number, number>) : {};
+  } catch {
+    return {};
+  }
+}
+
+export async function getStars(level: number): Promise<number> {
+  return (await readStars())[level] ?? 0;
+}
+
+// Keeps the player's best result; never downgrades an earlier higher score.
+export async function recordStars(level: number, stars: number): Promise<void> {
+  const all = await readStars();
+  if (stars <= (all[level] ?? 0)) return;
+  all[level] = stars;
+  await AsyncStorage.setItem(STARS_KEY, JSON.stringify(all));
 }

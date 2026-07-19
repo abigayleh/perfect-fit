@@ -1,4 +1,4 @@
-import { LEVEL_DIFFICULTY, PRESET_LEVELS } from './level-presets';
+import { LEVEL_DIFFICULTY, LEVEL_SPECS, PRESET_LEVELS } from './level-presets';
 
 // Board grows with progression: 4x4 (1-25), 5x5 (26-75), 6x6 (76-100).
 export function getBoardSize(level: number): number {
@@ -30,7 +30,7 @@ export type Piece = {
   rotation: number;
 };
 
-export type BoardCell = { pieceId: string; color: string } | null;
+export type BoardCell = { pieceId: string; color: string } | { obstacle: true } | null;
 
 export type ShapeCells = Array<[number, number]>;
 
@@ -38,6 +38,17 @@ export type LevelPiecePreset = {
   cells: ShapeCells;
   rotatable?: boolean;
   initialRotation?: number;
+};
+
+// A level's full definition. `pieces` may include decoys (more than needed to
+// fill the free cells); `obstacles` are permanently blocked cells; `moveLimit`,
+// if set, fails the level when exceeded. `parMoves` is the 3-star threshold —
+// the minimum placements to win (= number of solution pieces).
+export type LevelSpec = {
+  pieces: LevelPiecePreset[];
+  obstacles?: ShapeCells;
+  moveLimit?: number;
+  parMoves: number;
 };
 
 export type Difficulty = 'easy' | 'medium' | 'hard';
@@ -67,8 +78,17 @@ export function rotateCells(cells: ShapeCells, turns: number): ShapeCells {
   return next;
 }
 
-export function createLevelPieces(level: number): Piece[] {
+// Prefer a hand-authored/generated LevelSpec; otherwise wrap the legacy
+// exact-cover preset (no obstacles/decoys, par = piece count).
+export function getLevelSpec(level: number): LevelSpec {
+  const spec = LEVEL_SPECS[level];
+  if (spec) return spec;
   const presets = PRESET_LEVELS[level] ?? PRESET_LEVELS[1];
+  return { pieces: presets, parMoves: presets.length };
+}
+
+export function createLevelPieces(level: number): Piece[] {
+  const presets = getLevelSpec(level).pieces;
   return presets.map((preset, idx) => {
     const initialRotation = ((preset.initialRotation ?? 0) % 4 + 4) % 4;
     return {
@@ -88,6 +108,32 @@ export function createEmptyBoard(size: number): BoardCell[][] {
   return Array.from({ length: size }, () =>
     Array.from({ length: size }, () => null),
   );
+}
+
+// Board seeded with a level's obstacle cells (permanently blocked).
+export function createBoard(size: number, obstacles?: ShapeCells): BoardCell[][] {
+  const board = createEmptyBoard(size);
+  for (const [r, c] of obstacles ?? []) {
+    if (r >= 0 && r < size && c >= 0 && c < size) board[r][c] = { obstacle: true };
+  }
+  return board;
+}
+
+export function isObstacle(cell: BoardCell): cell is { obstacle: true } {
+  return cell !== null && 'obstacle' in cell;
+}
+
+// Win state: no empty (null) cells remain. Obstacles count as filled, and
+// leftover decoy pieces in the tray are fine.
+export function isBoardFull(board: BoardCell[][]): boolean {
+  return board.every(row => row.every(cell => cell !== null));
+}
+
+// 3 stars = no wasted placements, 2 = up to two extra, 1 = solved at all.
+export function starsFor(moves: number, parMoves: number): number {
+  if (moves <= parMoves) return 3;
+  if (moves <= parMoves + 2) return 2;
+  return 1;
 }
 
 // Board helpers infer the grid size from the board itself, so they work for any
