@@ -6,6 +6,10 @@ node_modules/
 dist/
 web-build/
 
+# Native projects — generated output, regenerate with `npx expo prebuild`
+/ios/
+/android/
+
 # Native
 *.orig.*
 *.jks

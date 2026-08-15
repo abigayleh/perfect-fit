@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# expo
+.expo/
+
+# agent-local scratch
+.claude/agent-memory/
